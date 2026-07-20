@@ -14,15 +14,14 @@ const userSchema = new mongoose.Schema({
     email:{
         type:String,
         required:true,
-        unique:true,
         lowercase:true
     },
     whatsappNumber:{
-        type:String,
+        type:Number,
         required:true
     },
-    phone:{
-        type:String,
+    phoneNumber:{
+        type:Number,
         required:true,
     },
     cityName:{
