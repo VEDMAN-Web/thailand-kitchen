@@ -44,7 +44,7 @@ function HomePage() {
               loop
               playsInline
               preload="auto"
-              src="/video/kitchen.mp4?v=3"
+              src="/video/2.mp4?v=3"
               onCanPlay={() => {
                 videoRef.current?.play().catch(() => {});
               }}
