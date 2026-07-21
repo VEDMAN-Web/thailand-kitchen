@@ -1,0 +1,68 @@
+stages:
+  - install
+  - lint
+  - build
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+cache:
+  key:
+    files:
+      - client/package-lock.json
+      - server/package-lock.json
+  paths:
+    - client/node_modules/
+    - server/node_modules/
+    - .npm/
+
+client-install:
+  stage: install
+  image: node:20
+  script:
+    - cd client && npm ci
+  rules:
+    - changes:
+        - client/**/*
+        - .gitlab-ci.yml
+
+client-lint:
+  stage: lint
+  image: node:20
+  script:
+    - cd client && npm ci && npm run lint
+  rules:
+    - changes:
+        - client/**/*
+        - .gitlab-ci.yml
+
+client-build:
+  stage: build
+  image: node:20
+  script:
+    - cd client && npm ci && npm run build
+  rules:
+    - changes:
+        - client/**/*
+        - .gitlab-ci.yml
+
+server-install:
+  stage: install
+  image: node:20
+  script:
+    - cd server && npm ci
+  rules:
+    - changes:
+        - server/**/*
+        - .gitlab-ci.yml
+
+server-sanity-check:
+  stage: build
+  image: node:20
+  script:
+    - cd server && npm ci
+    - node -c src/server.js
+  rules:
+    - changes:
+        - server/**/*
+        - .gitlab-ci.yml
