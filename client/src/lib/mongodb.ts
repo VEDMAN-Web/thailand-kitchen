@@ -1,23 +1,8 @@
-import mongoose from "mongoose";
+import { MongoClient, type Db } from "mongodb";
 
-interface MongooseCache {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-}
-
-declare global {
-  // eslint-disable-next-line no-var
-  var mongooseCache: MongooseCache | undefined;
-}
-
-const cached: MongooseCache = global.mongooseCache ?? {
-  conn: null,
-  promise: null,
+const globalForMongo = globalThis as unknown as {
+  _mongoClientPromise?: Promise<MongoClient>;
 };
-
-if (!global.mongooseCache) {
-  global.mongooseCache = cached;
-}
 
 function getMongoUri() {
   return (
@@ -31,36 +16,29 @@ export function hasMongoUri() {
   return Boolean(getMongoUri());
 }
 
-export async function connectDB() {
+async function getClient() {
   const uri = getMongoUri();
-
   if (!uri) {
     throw new Error(
       "MONGO_URI is not defined. Add it in Vercel → Settings → Environment Variables, then redeploy."
     );
   }
 
-  if (cached.conn) {
-    return cached.conn;
+  if (!globalForMongo._mongoClientPromise) {
+    const client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
+    });
+    globalForMongo._mongoClientPromise = client.connect().catch((err) => {
+      globalForMongo._mongoClientPromise = undefined;
+      throw err;
+    });
   }
 
-  if (!cached.promise) {
-    cached.promise = mongoose
-      .connect(uri, {
-        bufferCommands: false,
-        serverSelectionTimeoutMS: 8000,
-      })
-      .catch((err) => {
-        cached.promise = null;
-        throw err;
-      });
-  }
+  return globalForMongo._mongoClientPromise;
+}
 
-  try {
-    cached.conn = await cached.promise;
-    return cached.conn;
-  } catch (err) {
-    cached.promise = null;
-    throw err;
-  }
+export async function getDb(): Promise<Db> {
+  const client = await getClient();
+  return client.db();
 }

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { connectDB, hasMongoUri } from "../../../../lib/mongodb";
-import { Contact } from "../../../../lib/models/Contact";
+import { getDb, hasMongoUri } from "../../../../lib/mongodb";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 15;
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       cityName,
       countryName,
       message,
-    } = body;
+    } = body ?? {};
 
     if (!fullName?.trim()) {
       return NextResponse.json(
@@ -72,28 +72,33 @@ export async function POST(request: Request) {
           success: false,
           message:
             "MONGO_URI is missing on this Vercel project. Add MONGO_URI in Settings → Environment Variables (Production), then Redeploy.",
+          mongoConfigured: false,
         },
         { status: 500 }
       );
     }
 
-    await connectDB();
-
-    const contact = await Contact.create({
+    const db = await getDb();
+    const now = new Date();
+    const doc = {
       fullName: String(fullName).trim(),
-      email: String(email).trim(),
+      email: String(email).trim().toLowerCase(),
       whatsappNumber: String(whatsappNumber).trim(),
       phoneNumber: String(phoneNumber).trim(),
       cityName: String(cityName).trim(),
       countryName: String(countryName).trim(),
       message: message ? String(message).trim() : "",
-    });
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await db.collection("users").insertOne(doc);
 
     return NextResponse.json(
       {
         success: true,
         message: "Contact submitted successfully",
-        data: contact,
+        data: { _id: result.insertedId, ...doc },
       },
       { status: 201 }
     );

@@ -5,8 +5,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
-  // Required for mongoose on Vercel — prevents broken bundling / hung API routes
-  serverExternalPackages: ["mongoose"],
+  serverExternalPackages: ["mongodb"],
   images: {
     unoptimized: false,
   },

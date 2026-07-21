@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
-import { hasMongoUri } from "../../../../lib/mongodb";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const mongoConfigured = Boolean(
+    process.env.MONGO_URI?.trim() || process.env.MONGODB_URI?.trim()
+  );
+
   return NextResponse.json({
     ok: true,
-    mongoConfigured: hasMongoUri(),
-    hint: hasMongoUri()
-      ? "MONGO_URI is set. Try submitting the contact form."
-      : "MONGO_URI is NOT set on this deployment. Add it in Vercel env vars and redeploy.",
+    mongoConfigured,
+    hint: mongoConfigured
+      ? "MONGO_URI is set on this deployment."
+      : "MONGO_URI is NOT set. Add it in Vercel → Settings → Environment Variables (Production), then Redeploy.",
   });
 }
