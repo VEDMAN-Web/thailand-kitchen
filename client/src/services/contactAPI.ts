@@ -1,31 +1,47 @@
 import { ContactData } from "../types/contactUs";
-import api from "./api"
 
+/**
+ * Always posts to the same-origin Next.js API route.
+ * Avoids broken absolute NEXT_PUBLIC_API_URL values on Vercel.
+ */
 export const createContact = async (data: ContactData) => {
-  const response = await api.post("/contact/post", data);
-  return response.data;
-};
+  const response = await fetch("/api/contact/post", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
 
+  let result: { success?: boolean; message?: string; data?: unknown } = {};
+  try {
+    result = await response.json();
+  } catch {
+    result = { message: "Invalid response from server" };
+  }
+
+  if (!response.ok) {
+    const error = new Error(result.message || "Failed to submit contact form") as Error & {
+      response: { data: typeof result; status: number };
+    };
+    error.response = { data: result, status: response.status };
+    throw error;
+  }
+
+  return result;
+};
 
 export const getContacts = async () => {
-  const response = await api.get("/contact/get");
-  return response.data;
+  const response = await fetch("/api/contact/health");
+  return response.json();
 };
 
-
-export const getContactById = async (id: string) => {
-  const response = await api.get(`/contact/getByID/${id}`);
-  return response.data;
-}
-
-
-export const deleteContact = async (id: string) => {
-  const response = await api.delete(`/contact/delete/${id}`);
-  return response.data;
+export const getContactById = async (_id: string) => {
+  throw new Error("Not implemented on this deployment");
 };
 
+export const deleteContact = async (_id: string) => {
+  throw new Error("Not implemented on this deployment");
+};
 
-export const updateContact = async (id: string, data: ContactData) => {
-  const response = await api.put(`/contact/put/${id}`, data);
-  return response.data;
+export const updateContact = async (_id: string, _data: ContactData) => {
+  throw new Error("Not implemented on this deployment");
 };

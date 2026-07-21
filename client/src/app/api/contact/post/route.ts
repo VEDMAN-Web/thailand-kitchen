@@ -5,74 +5,57 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
+type ContactBody = {
+  fullName?: string;
+  email?: string;
+  whatsappNumber?: string;
+  phoneNumber?: string;
+  cityName?: string;
+  countryName?: string;
+  message?: string;
+};
+
+function badRequest(message: string) {
+  return NextResponse.json({ success: false, message }, { status: 400 });
+}
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const {
-      fullName,
-      email,
-      whatsappNumber,
-      phoneNumber,
-      cityName,
-      countryName,
-      message,
-    } = body ?? {};
-
-    if (!fullName?.trim()) {
-      return NextResponse.json(
-        { success: false, message: "Full name is required" },
-        { status: 400 }
-      );
+    let body: ContactBody;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest("Invalid JSON body");
     }
 
-    if (!email?.trim() || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
-      return NextResponse.json(
-        { success: false, message: "Valid email is required" },
-        { status: 400 }
-      );
-    }
+    const fullName = String(body.fullName ?? "").trim();
+    const email = String(body.email ?? "").trim();
+    const whatsappNumber = String(body.whatsappNumber ?? "").trim();
+    const phoneNumber = String(body.phoneNumber ?? "").trim();
+    const cityName = String(body.cityName ?? "").trim();
+    const countryName = String(body.countryName ?? "").trim();
+    const message = String(body.message ?? "").trim();
 
-    if (!phoneNumber?.trim() || !/^\+?[0-9]+$/.test(String(phoneNumber).trim())) {
-      return NextResponse.json(
-        { success: false, message: "Valid phone number is required" },
-        { status: 400 }
-      );
+    if (!fullName) return badRequest("Full name is required");
+    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+      return badRequest("Valid email is required");
     }
-
-    if (
-      !whatsappNumber?.trim() ||
-      !/^\+?[0-9]+$/.test(String(whatsappNumber).trim())
-    ) {
-      return NextResponse.json(
-        { success: false, message: "Valid WhatsApp number is required" },
-        { status: 400 }
-      );
+    if (!/^\+?[0-9]{7,15}$/.test(phoneNumber)) {
+      return badRequest("Valid phone number is required");
     }
-
-    if (!cityName?.trim() || !/^[\p{L}\s'.-]+$/u.test(String(cityName).trim())) {
-      return NextResponse.json(
-        { success: false, message: "Valid city is required" },
-        { status: 400 }
-      );
+    if (!/^\+?[0-9]{7,15}$/.test(whatsappNumber)) {
+      return badRequest("Valid WhatsApp number is required");
     }
-
-    if (
-      !countryName?.trim() ||
-      !/^[\p{L}\s'.-]+$/u.test(String(countryName).trim())
-    ) {
-      return NextResponse.json(
-        { success: false, message: "Valid country is required" },
-        { status: 400 }
-      );
-    }
+    if (!cityName) return badRequest("City is required");
+    if (!countryName) return badRequest("Country is required");
 
     if (!hasMongoUri()) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "MONGO_URI is missing on this Vercel project. Add MONGO_URI in Settings → Environment Variables (Production), then Redeploy.",
           mongoConfigured: false,
+          message:
+            "MONGO_URI is missing on Vercel. Add MONGO_URI in Project Settings → Environment Variables (Production), then Redeploy.",
         },
         { status: 500 }
       );
@@ -81,13 +64,15 @@ export async function POST(request: Request) {
     const db = await getDb();
     const now = new Date();
     const doc = {
-      fullName: String(fullName).trim(),
-      email: String(email).trim().toLowerCase(),
-      whatsappNumber: String(whatsappNumber).trim(),
-      phoneNumber: String(phoneNumber).trim(),
-      cityName: String(cityName).trim(),
-      countryName: String(countryName).trim(),
-      message: message ? String(message).trim() : "",
+      fullName,
+      email: email.toLowerCase(),
+      whatsappNumber,
+      phoneNumber,
+      cityName,
+      countryName,
+      message:
+        message ||
+        `Contact inquiry from ${fullName}. Please follow up regarding kitchen consultation.`,
       createdAt: now,
       updatedAt: now,
     };
@@ -106,12 +91,6 @@ export async function POST(request: Request) {
     const message =
       error instanceof Error ? error.message : "Failed to submit contact form";
     console.error("Contact POST error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }

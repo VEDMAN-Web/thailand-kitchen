@@ -1,11 +1,5 @@
 const mongoose = require('mongoose');
 
-
-const validatePhoneNumber = function (phoneNumber) {
-    const phoneNumberRegex = /^\d{10}$/;
-    return phoneNumberRegex.test(phoneNumber);
-};
-
 const userSchema = new mongoose.Schema({
     fullName:{
         type:String,
@@ -17,11 +11,11 @@ const userSchema = new mongoose.Schema({
         lowercase:true
     },
     whatsappNumber:{
-        type:Number,
+        type:String,
         required:true
     },
     phoneNumber:{
-        type:Number,
+        type:String,
         required:true,
     },
     cityName:{
