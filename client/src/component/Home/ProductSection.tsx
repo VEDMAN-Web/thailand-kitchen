@@ -10,7 +10,7 @@ const ProductSection = () => {
   const [active, setActive] = useState<number | null>(null);
 
   return (
-     <section className="pb-10 lg:pb-16">
+     <section className="pb-6 lg:pb-8">
       <div className="max-w-7xl mx-auto px-6">
         <div
           className="flex flex-col sm:flex-row gap-3 sm:gap-4 h-auto sm:h-[520px] lg:h-[600px]"

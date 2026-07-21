@@ -10,7 +10,7 @@ import TestimonialCard from "./TestimonialCard";
 
 export default function TestimonialSection() {
   return (
-    <section className="py-10 md:py-16 lg:py-20">
+    <section className="pb-10 lg:pb-12">
       <div className="max-w-7xl mx-auto px-6">
         <Swiper
           modules={[Autoplay]}

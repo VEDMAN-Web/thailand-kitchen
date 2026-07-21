@@ -9,7 +9,7 @@ export default function FeatureSection() {
   const { t } = useTranslation();
 
   return (
-    <section className="pb-10 lg:pb-16">
+    <section className="pb-6 lg:pb-8">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
           {featureData.map((item) => (

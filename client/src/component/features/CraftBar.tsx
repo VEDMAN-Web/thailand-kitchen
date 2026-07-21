@@ -14,13 +14,13 @@ export default function CraftBar() {
   const { t } = useTranslation();
 
   return (
-    <section className="bg-[#1A1A1A] text-white pb-16 lg:pb-20">
-      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-14">
+    <section className="bg-[#1A1A1A] text-white">
+      <div className="max-w-7xl mx-auto px-6 py-10 lg:py-12">
         <div className="flex flex-col sm:flex-row items-stretch">
           {craftItems.map((item, index) => (
             <div
               key={item.id}
-              className={`flex-1 py-6 sm:py-2 px-0 sm:px-6 lg:px-8 first:sm:pl-0 last:sm:pr-0 ${
+              className={`flex-1 py-5 sm:py-0 px-0 sm:px-6 lg:px-8 first:sm:pl-0 last:sm:pr-0 ${
                 index < craftItems.length - 1
                   ? "border-b sm:border-b-0 sm:border-r border-[#5A5A5A]"
                   : ""

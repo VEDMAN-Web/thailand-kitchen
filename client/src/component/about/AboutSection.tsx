@@ -34,7 +34,7 @@ export default function AboutSection() {
         <p className="text-[#E0905A] text-xs tracking-[0.28em] uppercase font-medium mb-3">
           {t("home.about.eyebrow")}
         </p>
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1A1A1A] mb-10 lg:mb-14">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1A1A1A] mb-10 lg:mb-12">
           {t("home.about.title")}
         </h2>
 
