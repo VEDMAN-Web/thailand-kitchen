@@ -4,9 +4,6 @@ const lettersOnlyPattern = /^[\p{L}\s'.-]+$/u;
 
 export const validateContact = (data: ContactData) => {
   const errors: Partial<Record<keyof ContactData, string>> = {};
-  const email = data.email.trim();
-  const phone = data.phoneNumber.trim();
-  const whatsapp = data.whatsappNumber.trim();
 
   if (!data.fullName.trim()) {
     errors.fullName = "Full name is required";
@@ -14,23 +11,23 @@ export const validateContact = (data: ContactData) => {
     errors.fullName = "Full name must contain only letters";
   }
 
-  const hasAnyContact = Boolean(email || phone || whatsapp);
-
-  if (!hasAnyContact) {
-    errors.email = "Please provide at least email or phone number";
-    errors.phoneNumber = "Please provide at least email or phone number";
+  if (!data.email.trim()) {
+    errors.email = "Email is required";
   } else if (
-    email &&
-    !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)
+    !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(data.email)
   ) {
     errors.email = "Invalid email address";
   }
 
-  if (phone && !/^\+?[0-9]+$/.test(phone)) {
+  if (!data.phoneNumber.trim()) {
+    errors.phoneNumber = "Phone number is required";
+  } else if (!/^\+?[0-9]+$/.test(data.phoneNumber.trim())) {
     errors.phoneNumber = "Phone number must contain only numbers";
   }
 
-  if (whatsapp && !/^\+?[0-9]+$/.test(whatsapp)) {
+  if (!data.whatsappNumber.trim()) {
+    errors.whatsappNumber = "WhatsApp number is required";
+  } else if (!/^\+?[0-9]+$/.test(data.whatsappNumber.trim())) {
     errors.whatsappNumber = "WhatsApp number must contain only numbers";
   }
 
