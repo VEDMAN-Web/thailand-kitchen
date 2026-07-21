@@ -27,6 +27,7 @@ export interface ProductItem {
   style: string;
   color: string;
   image: string;
+  bestSeller?: boolean;
   heroImages: [string, string, string];
   tag: string;
   headline: string;
@@ -45,6 +46,10 @@ export const productLayouts: ProductLayout[] = [
   "Straight",
   "T Shape",
 ];
+
+/** Layout tabs + Best Seller (shown after T Shape) */
+export const productFilterTabs = [...productLayouts, "Best Seller"] as const;
+export type ProductFilterTab = (typeof productFilterTabs)[number];
 
 export const productHero = {
   label: "Collection",
@@ -155,6 +160,7 @@ export const productItems: ProductItem[] = [
     style: "Contemporary",
     color: "Black",
     image: IMG[0],
+    bestSeller: true,
     heroImages: [HERO_FALLBACK, IMG[0], IMG[1]],
     headline:
       "The Art of Teak: Why Heritage Timber Remains the Ultimate Kitchen Luxury",
@@ -172,6 +178,7 @@ export const productItems: ProductItem[] = [
     style: "Minimal",
     color: "White",
     image: IMG[1],
+    bestSeller: true,
     heroImages: [IMG[1], IMG[2], IMG[3]],
   }),
   makeProduct({
@@ -185,6 +192,7 @@ export const productItems: ProductItem[] = [
     style: "Classic",
     color: "Oak",
     image: IMG[2],
+    bestSeller: true,
     heroImages: [IMG[2], IMG[0], IMG[5]],
   }),
   makeProduct({
@@ -211,6 +219,7 @@ export const productItems: ProductItem[] = [
     style: "Contemporary",
     color: "Grey",
     image: IMG[4],
+    bestSeller: true,
     heroImages: [IMG[4], IMG[5], IMG[0]],
   }),
   makeProduct({
@@ -249,6 +258,7 @@ export const productItems: ProductItem[] = [
     style: "Contemporary",
     color: "Grey",
     image: IMG[1],
+    bestSeller: true,
   }),
   makeProduct({
     id: 9,
@@ -285,6 +295,7 @@ export const productItems: ProductItem[] = [
     style: "Contemporary",
     color: "Black",
     image: IMG[4],
+    bestSeller: true,
   }),
   makeProduct({
     id: 12,

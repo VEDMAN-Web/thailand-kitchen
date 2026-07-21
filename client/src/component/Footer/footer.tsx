@@ -100,12 +100,12 @@ export default function Footer() {
             </h3>
             <ul className="space-y-4">
               {footerLinks.home.map((item) => (
-                <li key={item}>
+                <li key={item.key}>
                   <Link
-                    href="#"
+                    href={item.href}
                     className="text-white/70 text-sm hover:text-white transition"
                   >
-                    {t(item)}
+                    {t(item.key)}
                   </Link>
                 </li>
               ))}
@@ -118,12 +118,12 @@ export default function Footer() {
             </h3>
             <ul className="space-y-4">
               {footerLinks.product.map((item) => (
-                <li key={item}>
+                <li key={item.key}>
                   <Link
-                    href="#"
+                    href={item.href}
                     className="text-white/70 text-sm hover:text-white transition"
                   >
-                    {t(item)}
+                    {t(item.key)}
                   </Link>
                 </li>
               ))}

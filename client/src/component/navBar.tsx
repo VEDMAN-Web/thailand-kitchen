@@ -43,6 +43,11 @@ const Navbar = () => {
     };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    setMobileOpen(false);
+    setIsOpen(false);
+  }, [pathname]);
+
   const selectLanguage = (code: Locale) => {
     setLocale(code);
     setIsOpen(false);
@@ -167,7 +172,11 @@ const Navbar = () => {
             </Link>
 
             <button
-              onClick={() => setMobileOpen(!mobileOpen)}
+              type="button"
+              onClick={() => {
+                setMobileOpen((open) => !open);
+                setIsOpen(false);
+              }}
               aria-label="Toggle menu"
               aria-expanded={mobileOpen}
               className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition"
@@ -195,11 +204,13 @@ const Navbar = () => {
       </div>
 
       <div
-        className={`lg:hidden fixed inset-x-0 top-full bg-white border-b border-black/5 shadow-lg overflow-hidden transition-all duration-300 ${
-          mobileOpen ? "max-h-[calc(100vh-5rem)] opacity-100" : "max-h-0 opacity-0"
+        className={`lg:hidden absolute inset-x-0 top-full z-50 bg-white border-b border-black/5 shadow-[0_12px_40px_rgba(0,0,0,0.12)] overflow-hidden transition-all duration-300 ease-out ${
+          mobileOpen
+            ? "max-h-[min(80vh,640px)] opacity-100 pointer-events-auto visible"
+            : "max-h-0 opacity-0 pointer-events-none invisible"
         }`}
       >
-        <nav className="flex flex-col px-4 sm:px-6 py-4 gap-1">
+        <nav className="flex flex-col px-4 sm:px-6 py-4 gap-1 overflow-y-auto max-h-[min(80vh,640px)]">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -225,12 +236,16 @@ const Navbar = () => {
             />
           </div>
 
-          <div className="sm:hidden flex gap-2 pt-2">
+          <div className="sm:hidden flex flex-wrap gap-2 pt-2">
             {languages.map((language) => (
               <button
                 key={language.code}
-                onClick={() => selectLanguage(language.code)}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold border transition bg-white ${
+                type="button"
+                onClick={() => {
+                  selectLanguage(language.code);
+                  setMobileOpen(false);
+                }}
+                className={`flex flex-1 min-w-[30%] items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold border transition bg-white ${
                   locale === language.code
                     ? "border-[#B38B6D] text-[#1A1A1A] shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                     : "border-gray-200 text-gray-500"

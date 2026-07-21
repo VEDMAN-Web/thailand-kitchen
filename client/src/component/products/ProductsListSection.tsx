@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import ProductCard from "./ProductCard";
 import {
   productItems,
-  productLayouts,
+  productFilterTabs,
   filterOptions,
   sortOptions,
   PRODUCTS_PER_PAGE,
-  ProductLayout,
+  type ProductFilterTab,
+  type ProductLayout,
 } from "./productData";
 import { useTranslation } from "../../i18n/LanguageProvider";
 import type { TranslationKey } from "../../i18n/translations";
@@ -27,9 +29,22 @@ const sortLabelKeys: Record<string, TranslationKey> = {
   "Name Z–A": "products.sort.nameDesc",
 };
 
+function tabFromQuery(value: string | null): ProductFilterTab | null {
+  if (!value) return null;
+  const normalized = value.toLowerCase().replace(/[_\s]+/g, "-");
+  if (normalized === "best-seller" || normalized === "bestseller") {
+    return "Best Seller";
+  }
+  const match = productFilterTabs.find(
+    (tab) => tab.toLowerCase().replace(/\s+/g, "-") === normalized
+  );
+  return match ?? null;
+}
+
 export default function ProductsListSection() {
   const { t } = useTranslation();
-  const [layout, setLayout] = useState<ProductLayout | "All">("Modern");
+  const searchParams = useSearchParams();
+  const [layout, setLayout] = useState<ProductFilterTab>("Modern");
   const [style, setStyle] = useState(filterOptions.style[0]);
   const [color, setColor] = useState(filterOptions.color[0]);
   const [finish, setFinish] = useState(filterOptions.finish[0]);
@@ -37,11 +52,31 @@ export default function ProductsListSection() {
   const [sortBy, setSortBy] = useState(sortOptions[0]);
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    const fromQuery =
+      tabFromQuery(searchParams.get("tab")) ||
+      tabFromQuery(searchParams.get("filter"));
+    if (fromQuery) {
+      setLayout(fromQuery);
+      setPage(1);
+    }
+    if (fromQuery === "Best Seller" || searchParams.get("tab") === "best-seller") {
+      requestAnimationFrame(() => {
+        document
+          .getElementById("best-seller")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [searchParams]);
+
   const filtered = useMemo(() => {
     let list = [...productItems];
 
-    if (layout !== "All" && layout !== "Modern") {
-      list = list.filter((item) => item.layoutType === layout);
+    if (layout === "Best Seller") {
+      // Best sellers that still pass dropdown filters (not filtered out)
+      list = list.filter((item) => item.bestSeller);
+    } else if (layout !== "Modern") {
+      list = list.filter((item) => item.layoutType === (layout as ProductLayout));
     }
 
     if (style !== "Select Style") {
@@ -86,10 +121,10 @@ export default function ProductsListSection() {
   const sortLabel = (opt: string) => t(sortLabelKeys[opt] ?? "products.sort.label");
 
   return (
-    <section className="pb-16 lg:pb-24 pt-10 lg:pt-12">
-      {/* Layout tabs */}
+    <section id="best-seller" className="pb-16 lg:pb-24 pt-10 lg:pt-12 scroll-mt-28">
+      {/* Layout tabs + Best Seller */}
       <div className="flex flex-wrap gap-3">
-        {productLayouts.map((item) => {
+        {productFilterTabs.map((item) => {
           const isActive = layout === item;
           return (
             <button
@@ -98,6 +133,15 @@ export default function ProductsListSection() {
               onClick={() => {
                 setLayout(item);
                 setPage(1);
+                if (item === "Best Seller") {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("tab", "best-seller");
+                  window.history.replaceState({}, "", url.toString());
+                } else {
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete("tab");
+                  window.history.replaceState({}, "", url.toString());
+                }
               }}
               className={`px-5 py-2.5 rounded-full text-sm font-medium transition ${
                 isActive
