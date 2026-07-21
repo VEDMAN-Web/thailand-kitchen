@@ -1,13 +1,48 @@
+import { readdir } from "fs/promises";
+import path from "path";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
-import path from "path";
 import { catalogFiles } from "../../../../component/catlog/catlogData";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const COOKIE = "tk_catalog_access";
+
+async function findPdfFile(preferredName: string) {
+  const safeName = path.basename(preferredName);
+  const candidates = [
+    path.join(process.cwd(), "private", "catalogues", safeName),
+    path.join(process.cwd(), "public", "catlog", safeName),
+    path.join(process.cwd(), "public", "catlog", "catalogue.pdf"),
+    path.join(process.cwd(), "public", "catlog", "catalog.pdf"),
+  ];
+
+  for (const filePath of candidates) {
+    try {
+      await fs.access(filePath);
+      return filePath;
+    } catch {
+      /* try next */
+    }
+  }
+
+  for (const dir of [
+    path.join(process.cwd(), "private", "catalogues"),
+    path.join(process.cwd(), "public", "catlog"),
+  ]) {
+    try {
+      const files = await readdir(dir);
+      const pdf = files.find((f) => f.toLowerCase().endsWith(".pdf"));
+      if (pdf) return path.join(dir, pdf);
+    } catch {
+      /* try next dir */
+    }
+  }
+
+  return null;
+}
 
 export async function GET(request: NextRequest) {
   const jar = await cookies();
@@ -33,32 +68,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Only allow known filenames (no path traversal)
-  const safeName = path.basename(item.pdf);
-  const privatePath = path.join(process.cwd(), "private", "catalogues", safeName);
-  const publicPath = path.join(process.cwd(), "public", "catlog", safeName);
+  const filePath = await findPdfFile(item.pdf);
 
-  let filePath = privatePath;
-  try {
-    await fs.access(privatePath);
-  } catch {
-    try {
-      await fs.access(publicPath);
-      filePath = publicPath;
-    } catch {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Catalogue PDF is not uploaded yet. Place the file in private/catalogues/ or public/catlog/.",
-        },
-        { status: 404 }
-      );
-    }
+  if (!filePath) {
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "Catalogue PDF not found. Add catalogue.pdf to client/public/catlog/ folder.",
+      },
+      { status: 404 }
+    );
   }
 
   const file = await fs.readFile(filePath);
-  const filename = item.downloadName || safeName;
+  const filename = item.downloadName || path.basename(filePath);
 
   return new NextResponse(file, {
     status: 200,
