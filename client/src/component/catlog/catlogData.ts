@@ -4,7 +4,7 @@ export const products = [
     category: "Minimal",
     title: "2026 EDITION",
     image: "/catlog/catlog.png",
-    pdf: "catalogue.pdf",
+    pdf: "catalogue-minimal.pdf",
     downloadName: "Thailand-Kitchens-Catalogue-Minimal.pdf",
   },
   {
@@ -12,7 +12,7 @@ export const products = [
     category: "Classic",
     title: "2026 EDITION",
     image: "/catlog/catlog (1).png",
-    pdf: "catalogue.pdf",
+    pdf: "catalogue-classic.pdf",
     downloadName: "Thailand-Kitchens-Catalogue-Classic.pdf",
   },
   {
@@ -20,7 +20,7 @@ export const products = [
     category: "Modern",
     title: "2026 EDITION",
     image: "/catlog/catlog (2).png",
-    pdf: "catalogue.pdf",
+    pdf: "catalogue-modern.pdf",
     downloadName: "Thailand-Kitchens-Catalogue-Modern.pdf",
   },
   {

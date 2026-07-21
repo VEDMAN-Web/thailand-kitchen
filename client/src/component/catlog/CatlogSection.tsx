@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Download, Lock, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { products } from "./catlogData";
 import { useTranslation } from "../../i18n/LanguageProvider";
@@ -201,11 +201,7 @@ export default function CatlogSection() {
                       }`}
                     >
                       <span className="pointer-events-none inline-flex items-center gap-2 bg-[#E0905A] text-white px-7 py-3.5 rounded-full text-sm font-semibold shadow-lg transition-transform duration-500 scale-100 group-hover:scale-105">
-                        {unlocked ? (
-                          <Download size={18} />
-                        ) : (
-                          <Lock size={18} />
-                        )}
+                        <Download size={18} />
                         {isDownloading
                           ? t("home.catalog.downloading")
                           : unlocked
@@ -264,27 +260,27 @@ export default function CatlogSection() {
             <button
               type="button"
               onClick={() => setShowLockPopup(false)}
-              className="absolute top-4 right-4 text-white/40 hover:text-white transition"
+              className="absolute top-4 right-4 text-[#D9B897]/60 hover:text-[#D9B897] transition"
               aria-label="Close"
             >
               <X size={20} />
             </button>
 
             <div className="mx-auto mb-5 w-14 h-14 rounded-full bg-[#E0905A]/15 flex items-center justify-center">
-              <Lock size={26} className="text-[#E0905A]" />
+              <Download size={26} className="text-[#E0905A]" />
             </div>
 
-            <h3 className="text-xl font-bold text-white mb-3">
+            <h3 className="text-xl font-bold text-[#E5B689] mb-3">
               {t("home.catalog.lockTitle")}
             </h3>
-            <p className="text-white/60 text-sm leading-7 mb-8">
+            <p className="text-[#D9B897] text-sm leading-7 mb-8">
               {t("home.catalog.lockDesc")}
             </p>
 
             <button
               type="button"
               onClick={goToContact}
-              className="w-full bg-[#E0905A] text-white px-6 py-3.5 rounded-full text-sm font-semibold hover:bg-[#c97d4e] transition"
+              className="w-full bg-[#E0905A] text-[#1A1A1A] px-6 py-3.5 rounded-full text-sm font-semibold hover:bg-[#c97d4e] transition"
             >
               {t("home.catalog.lockCta")}
             </button>

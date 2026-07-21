@@ -29,7 +29,7 @@ export const galleryHero = {
     "A curated inspiration library of tropical, modern and minimal kitchens crafted by our Samui atelier — filter by style, layout, palette or material and discover your next design.",
   // [leftTop, rightTop, leftBottom, rightBottom]
   collage: [
-    "/slider/night.jpg",
+    "/products/Kitchen2.png",
     "/products/Kitchen3.png",
     "/features/image2.png",
     "/products/Kitchen1.png",
