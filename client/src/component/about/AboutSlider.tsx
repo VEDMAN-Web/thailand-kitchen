@@ -8,9 +8,9 @@ import { Navigation } from "swiper/modules";
 
 import { aboutSlides } from "./aboutData";
 
-import AboutSlide from "./AboutSlider";
-
 import { useRef } from "react";
+
+import type { Swiper as SwiperClass } from "swiper";
 
 export default function AboutSection() {
 
@@ -33,7 +33,7 @@ export default function AboutSection() {
 
           loop
 
-          onBeforeInit={(swiper: any) => {
+          onBeforeInit={(swiper: SwiperClass) => {
             swiper.params.navigation.prevEl = prevRef.current;
             swiper.params.navigation.nextEl = nextRef.current;
           }}

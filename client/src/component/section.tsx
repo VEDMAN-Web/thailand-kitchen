@@ -36,8 +36,8 @@ function CountValue({
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
     if (reduced) {
-      setValue(to);
-      return;
+      const id = requestAnimationFrame(() => setValue(to));
+      return () => cancelAnimationFrame(id);
     }
 
     let raf = 0;

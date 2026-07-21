@@ -40,7 +40,7 @@ function ScrollColumn({
 
     let raf = 0;
     const durationMs = 16000;
-    let start = performance.now();
+    const start = performance.now();
 
     const tick = (now: number) => {
       const half = track.scrollHeight / 2;
