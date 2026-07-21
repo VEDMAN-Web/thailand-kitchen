@@ -34,8 +34,11 @@ export default function AboutSection() {
           loop
 
           onBeforeInit={(swiper: SwiperClass) => {
-            swiper.params.navigation.prevEl = prevRef.current;
-            swiper.params.navigation.nextEl = nextRef.current;
+            if (typeof swiper.params.navigation === "boolean") return;
+            const navigation = swiper.params.navigation ?? {};
+            navigation.prevEl = prevRef.current;
+            navigation.nextEl = nextRef.current;
+            swiper.params.navigation = navigation;
           }}
 
         >
