@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGO_URI;
-
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -21,9 +19,25 @@ if (!global.mongooseCache) {
   global.mongooseCache = cached;
 }
 
+function getMongoUri() {
+  return (
+    process.env.MONGO_URI?.trim() ||
+    process.env.MONGODB_URI?.trim() ||
+    ""
+  );
+}
+
+export function hasMongoUri() {
+  return Boolean(getMongoUri());
+}
+
 export async function connectDB() {
-  if (!MONGODB_URI) {
-    throw new Error("MONGO_URI environment variable is not defined");
+  const uri = getMongoUri();
+
+  if (!uri) {
+    throw new Error(
+      "MONGO_URI is not defined. Add it in Vercel → Settings → Environment Variables, then redeploy."
+    );
   }
 
   if (cached.conn) {
@@ -31,11 +45,22 @@ export async function connectDB() {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-    });
+    cached.promise = mongoose
+      .connect(uri, {
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 8000,
+      })
+      .catch((err) => {
+        cached.promise = null;
+        throw err;
+      });
   }
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (err) {
+    cached.promise = null;
+    throw err;
+  }
 }

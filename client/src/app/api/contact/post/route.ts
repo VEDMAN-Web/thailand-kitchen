@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/src/lib/mongodb";
-import { Contact } from "@/src/lib/models/Contact";
+import { connectDB, hasMongoUri } from "../../../../lib/mongodb";
+import { Contact } from "../../../../lib/models/Contact";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
@@ -65,6 +66,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!hasMongoUri()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "MONGO_URI is missing on this Vercel project. Add MONGO_URI in Settings → Environment Variables (Production), then Redeploy.",
+        },
+        { status: 500 }
+      );
+    }
+
     await connectDB();
 
     const contact = await Contact.create({
@@ -86,11 +98,13 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to submit contact form";
     console.error("Contact POST error:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to submit contact form",
+        message,
       },
       { status: 500 }
     );
