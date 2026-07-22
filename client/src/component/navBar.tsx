@@ -95,17 +95,18 @@ const Navbar = () => {
     return () => window.clearTimeout(id);
   }, [searchOpen]);
 
-  const scheduleCloseSearch = () => {
+  const closeSearchOnLeave = () => {
     if (closeSearchTimer.current) clearTimeout(closeSearchTimer.current);
     closeSearchTimer.current = setTimeout(() => {
-      const active = document.activeElement;
-      if (active === searchInputRef.current || search.trim()) return;
+      searchInputRef.current?.blur();
       setSearchOpen(false);
-    }, 180);
+      setSearch("");
+    }, 100);
   };
 
   const toggleSearch = () => {
     if (searchOpen) {
+      searchInputRef.current?.blur();
       setSearchOpen(false);
       setSearch("");
       return;
@@ -216,10 +217,16 @@ const Navbar = () => {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <div
-              className="relative hidden sm:block w-10 h-10 shrink-0"
+              className={`relative hidden sm:block shrink-0 ${
+                searchOpen ? "w-[15.5rem] h-10" : "w-10 h-10"
+              }`}
               ref={desktopSearchRef}
               onMouseEnter={openSearch}
-              onMouseLeave={scheduleCloseSearch}
+              onMouseLeave={(e) => {
+                const next = e.relatedTarget as Node | null;
+                if (next && desktopSearchRef.current?.contains(next)) return;
+                closeSearchOnLeave();
+              }}
             >
               <div
                 className={`absolute right-0 top-1/2 z-50 flex h-10 -translate-y-1/2 items-center transition-all duration-300 ease-out ${
