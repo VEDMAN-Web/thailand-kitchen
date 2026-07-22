@@ -12,7 +12,7 @@ export const footerLinks: {
   ],
 
   product: [
-    { key: "footer.link.bestSeller", href: "/products?tab=best-seller#best-seller" },
+    { key: "footer.link.bestSeller", href: "/products?tab=best-seller" },
     { key: "footer.link.ourProducts", href: "/products" },
   ],
 };

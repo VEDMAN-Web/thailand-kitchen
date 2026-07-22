@@ -96,7 +96,7 @@ export default function ContactInfoPanel() {
   return (
     <div className="flex flex-col h-full pt-2 sm:pt-4 lg:pt-6">
       <div>
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
           {contactLocations.map((location) => (
             <div key={location.id} className="flex gap-3 items-start">
               <MapPinIcon />
@@ -112,7 +112,7 @@ export default function ContactInfoPanel() {
           ))}
         </div>
 
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
           {contactDetails.map((item) => (
             <div key={item.id} className="flex gap-3 items-start">
               {item.type === "email" ? <EmailIcon /> : <PhoneIcon />}
@@ -129,7 +129,7 @@ export default function ContactInfoPanel() {
         </div>
       </div>
 
-      <div className="mt-auto pt-10 w-full">
+      <div className="mt-auto pt-8 w-full">
         <div className="group relative w-full aspect-[16/9] rounded-[2rem] overflow-hidden">
           <Image
             src={contactCraftImage}
