@@ -36,8 +36,8 @@ function CountValue({
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
     if (reduced) {
-      const id = requestAnimationFrame(() => setValue(to));
-      return () => cancelAnimationFrame(id);
+      setValue(to);
+      return;
     }
 
     let raf = 0;
@@ -125,13 +125,13 @@ export default function StatsSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="bg-[#1A1A1A] py-14 md:py-20">
+    <section ref={sectionRef} className="bg-[#1A1A1A] py-10 lg:py-12">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col sm:flex-row items-stretch">
           {stats.map((item, index) => (
             <div
               key={item.titleKey}
-              className={`flex-1 text-center py-8 sm:py-6 px-4 sm:px-8 ${
+              className={`flex-1 text-center py-5 sm:py-0 px-4 sm:px-8 ${
                 index < stats.length - 1
                   ? "border-b sm:border-b-0 sm:border-r border-white/15"
                   : ""

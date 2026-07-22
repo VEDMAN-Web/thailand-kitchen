@@ -44,7 +44,7 @@ function HomePage() {
               loop
               playsInline
               preload="auto"
-              src="/video/kitchen.mp4?v=3"
+              src="/video/2.mp4?v=3"
               onCanPlay={() => {
                 videoRef.current?.play().catch(() => {});
               }}
@@ -88,7 +88,7 @@ function HomePage() {
         <AboutSection />
         <CraftBar />
 
-        <section className="pt-16 lg:pt-24 pb-4">
+        <section className="pt-16 lg:pt-24 pb-10 lg:pb-12">
           <div className="max-w-7xl mx-auto px-6 flex items-end justify-between gap-6">
             <div>
               <p className="text-[#E0905A] text-xs tracking-[0.28em] uppercase font-medium mb-3">
@@ -109,7 +109,7 @@ function HomePage() {
         </section>
         <ProductSection />
 
-        <section className="pt-16 lg:pt-24 pb-4">
+        <section className="pt-10 lg:pt-12 pb-10 lg:pb-12">
           <div className="max-w-7xl mx-auto px-6">
             <p className="text-[#E0905A] text-xs tracking-[0.28em] uppercase font-medium mb-3">
               {t("home.testimonials.eyebrow")}
@@ -123,7 +123,7 @@ function HomePage() {
 
         <StatsSection />
 
-        <section className="pt-16 lg:pt-20 pb-4">
+        <section className="pt-10 lg:pt-12 pb-10 lg:pb-12">
           <div className="max-w-7xl mx-auto px-6">
             <p className="text-[#E0905A] text-xs tracking-[0.28em] uppercase font-medium mb-3">
               {t("home.features.eyebrow")}
@@ -135,7 +135,7 @@ function HomePage() {
         </section>
         <FeatureSection />
 
-        <section className="pt-16 lg:pt-20 pb-8">
+        <section className="pt-10 lg:pt-12 pb-10 lg:pb-12">
           <div className="max-w-7xl mx-auto px-6">
             <p className="text-[#E0905A] text-xs tracking-[0.28em] uppercase font-medium mb-3">
               {t("home.catalog.eyebrow")}

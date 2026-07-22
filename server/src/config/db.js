@@ -2,13 +2,12 @@ const mongoose = require('mongoose');
 
 const ConnectDB = async () =>{
     try {
-        await mongoose.connect(process.env.MONGO_URI).then(()=>{
-            console.log("Database is Connected...");
-            
-        }).catch(()=>{
-            console.log("Database is Not Connected... ");
-            
-        })
+        const uri = process.env.MONGO_URI;
+        if (!uri) {
+            throw new Error('MONGO_URI is not defined');
+        }
+        await mongoose.connect(uri);
+        console.log("Database is Connected...");
     } catch (error) {
         console.log(error.message);
         process.exit(1);

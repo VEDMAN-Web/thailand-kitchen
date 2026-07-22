@@ -74,13 +74,23 @@ export default function useContact() {
 
       await createContact(payload);
 
+      // Unlock catalogue PDF download (httpOnly cookie via Next API)
+      try {
+        await fetch("/api/catalog/unlock", { method: "POST" });
+      } catch {
+        /* unlock is best-effort; contact already saved */
+      }
+
       toast.success(t("form.successTitle"), {
-        description: t("form.successDesc"),
+        description: t("form.successDescCatalog"),
       });
 
       setFormData(initialData);
 
       setErrors({});
+
+      // Soft-refresh catalog lock UI if user stays on page
+      window.dispatchEvent(new Event("catalog:unlocked"));
     } catch (err: unknown) {
       const apiMessage =
         typeof err === "object" &&

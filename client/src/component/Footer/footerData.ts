@@ -1,21 +1,19 @@
 import type { TranslationKey } from "../../i18n/translations";
 
 export const footerLinks: {
-  home: TranslationKey[];
-  product: TranslationKey[];
+  home: { key: TranslationKey; href: string }[];
+  product: { key: TranslationKey; href: string }[];
 } = {
   home: [
-    "footer.link.ourStory",
-    "footer.link.freeCatalogue",
-    "footer.link.globalPartner",
-    "footer.link.contact",
+    { key: "footer.link.ourStory", href: "/#our-service" },
+    { key: "footer.link.freeCatalogue", href: "/catalogue" },
+    { key: "footer.link.globalPartner", href: "/#brands" },
+    { key: "footer.link.contact", href: "/contact" },
   ],
 
   product: [
-    "footer.link.bestSeller",
-    "footer.link.freeCatalogue",
-    "footer.link.globalPartner",
-    "footer.link.ourProducts",
+    { key: "footer.link.bestSeller", href: "/products?tab=best-seller" },
+    { key: "footer.link.ourProducts", href: "/products" },
   ],
 };
 
@@ -37,8 +35,8 @@ export const contactInfo = [
 export type SocialIconName = "instagram" | "facebook" | "whatsapp" | "x";
 
 export const socialLinks: { name: SocialIconName; link: string; label: string }[] = [
-  { name: "instagram", link: "#", label: "Instagram" },
-  { name: "facebook", link: "#", label: "Facebook" },
-  { name: "whatsapp", link: "#", label: "WhatsApp" },
-  { name: "x", link: "#", label: "X" },
+  { name: "instagram", link: "https://www.instagram.com/?hl=en", label: "Instagram" },
+  { name: "facebook", link: "https://www.facebook.com/", label: "Facebook" },
+  { name: "whatsapp", link: "https://web.whatsapp.com/", label: "WhatsApp" },
+  { name: "x", link: "https://x.com/", label: "X" },
 ];
