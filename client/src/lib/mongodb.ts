@@ -1,40 +1,48 @@
-import mongoose from "mongoose";
+import { MongoClient, type Db } from "mongodb";
 
-const MONGODB_URI = process.env.MONGO_URI;
+const DB_NAME = process.env.MONGO_DB_NAME?.trim() || "thailandKitchen";
 
-interface MongooseCache {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-}
-
-declare global {
-  var mongooseCache: MongooseCache | undefined;
-}
-
-const cached: MongooseCache = global.mongooseCache ?? {
-  conn: null,
-  promise: null,
+const globalForMongo = globalThis as unknown as {
+  _mongoClientPromise?: Promise<MongoClient>;
 };
 
-if (!global.mongooseCache) {
-  global.mongooseCache = cached;
+function getMongoUri() {
+  return (
+    process.env.MONGO_URI?.trim() ||
+    process.env.MONGODB_URI?.trim() ||
+    ""
+  );
 }
 
-export async function connectDB() {
-  if (!MONGODB_URI) {
-    throw new Error("MONGO_URI environment variable is not defined");
+export function hasMongoUri() {
+  return Boolean(getMongoUri());
+}
+
+async function getClient(): Promise<MongoClient> {
+  const uri = getMongoUri();
+  if (!uri) {
+    throw new Error(
+      "MONGO_URI is not defined. Add it in Vercel → Settings → Environment Variables, then Redeploy."
+    );
   }
 
-  if (cached.conn) {
-    return cached.conn;
-  }
+  if (!globalForMongo._mongoClientPromise) {
+    const client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+      maxIdleTimeMS: 10000,
+    });
 
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
+    globalForMongo._mongoClientPromise = client.connect().catch((err) => {
+      globalForMongo._mongoClientPromise = undefined;
+      throw err;
     });
   }
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  return globalForMongo._mongoClientPromise;
+}
+
+export async function getDb(): Promise<Db> {
+  const client = await getClient();
+  return client.db(DB_NAME);
 }

@@ -10,67 +10,69 @@ export default function ContactPageForm() {
     useContact();
 
   return (
-    <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] p-8 sm:p-10 lg:p-12 shadow-[0_8px_30px_rgba(0,0,0,0.04)] h-full">
+    <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] p-8 sm:p-10 lg:p-12 shadow-[0_8px_30px_rgba(0,0,0,0.04)] h-full flex flex-col">
       <h2 className="text-xl sm:text-2xl font-bold text-[#1A1A1A] mb-8 lg:mb-10 leading-snug max-w-md">
         {t("contact.form.title")}
       </h2>
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7"
+        className="flex flex-col flex-1 min-h-0"
       >
-        <HomeContactInput
-          label={t("form.fullName")}
-          name="fullName"
-          value={formData.fullName}
-          onChange={handleChange}
-          error={errors.fullName}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
+          <HomeContactInput
+            label={t("form.fullName")}
+            name="fullName"
+            value={formData.fullName}
+            onChange={handleChange}
+            error={errors.fullName}
+          />
 
-        <HomeContactInput
-          label={t("contact.form.email")}
-          name="email"
-          type="email"
-          value={formData.email}
-          onChange={handleChange}
-          error={errors.email}
-        />
+          <HomeContactInput
+            label={t("contact.form.email")}
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            error={errors.email}
+          />
 
-        <HomeContactInput
-          label={t("form.country")}
-          name="countryName"
-          value={formData.countryName}
-          onChange={handleChange}
-          error={errors.countryName}
-        />
+          <HomeContactInput
+            label={t("form.country")}
+            name="countryName"
+            value={formData.countryName}
+            onChange={handleChange}
+            error={errors.countryName}
+          />
 
-        <HomeContactInput
-          label={t("form.city")}
-          name="cityName"
-          value={formData.cityName}
-          onChange={handleChange}
-          error={errors.cityName}
-        />
+          <HomeContactInput
+            label={t("form.city")}
+            name="cityName"
+            value={formData.cityName}
+            onChange={handleChange}
+            error={errors.cityName}
+          />
 
-        <HomeContactInput
-          label={t("contact.form.phone")}
-          name="phoneNumber"
-          type="tel"
-          value={formData.phoneNumber}
-          onChange={handleChange}
-          error={errors.phoneNumber}
-        />
+          <HomeContactInput
+            label={t("contact.form.phone")}
+            name="phoneNumber"
+            type="tel"
+            value={formData.phoneNumber}
+            onChange={handleChange}
+            error={errors.phoneNumber}
+          />
 
-        <HomeContactInput
-          label={t("contact.form.whatsapp")}
-          name="whatsappNumber"
-          type="tel"
-          value={formData.whatsappNumber}
-          onChange={handleChange}
-          error={errors.whatsappNumber}
-        />
+          <HomeContactInput
+            label={t("contact.form.whatsapp")}
+            name="whatsappNumber"
+            type="tel"
+            value={formData.whatsappNumber}
+            onChange={handleChange}
+            error={errors.whatsappNumber}
+          />
+        </div>
 
-        <div className="sm:col-span-2 pt-2">
+        <div className="mt-auto pt-8">
           <button
             type="submit"
             disabled={loading}

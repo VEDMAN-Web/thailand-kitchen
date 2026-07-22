@@ -61,6 +61,17 @@ export const translations = {
 
     "home.catalog.eyebrow": "Design Inspiration",
     "home.catalog.title": "Our Latest Catalogue",
+    "home.catalog.lockTitle": "Catalogue locked",
+    "home.catalog.lockDesc":
+      "Please fill the contact form first to unlock the PDF download.",
+    "home.catalog.lockHint": "PDF download unlocks after you submit the contact form.",
+    "home.catalog.lockCta": "Go to contact form",
+    "home.catalog.downloadStarted": "Downloading catalogue…",
+    "home.catalog.downloadBtn": "Download PDF",
+    "home.catalog.unlockBtn": "Unlock Download",
+    "home.catalog.downloading": "Downloading…",
+    "home.catalog.downloadError": "Download failed",
+    "home.catalog.downloadErrorDesc": "Catalogue PDF file is missing on server.",
 
     "home.contact.eyebrow": "Free Design Consultation",
     "home.contact.title": "Get in Touch",
@@ -85,6 +96,8 @@ export const translations = {
     "form.sending": "Sending...",
     "form.successTitle": "Message Sent",
     "form.successDesc": "We will contact you soon.",
+    "form.successDescCatalog":
+      "Thanks! Your catalogue download is now unlocked.",
     "form.errorTitle": "Submission Failed",
     "form.errorDesc": "Please try again later.",
 
@@ -184,6 +197,15 @@ export const translations = {
     "footer.link.bestSeller": "Best Seller",
     "footer.link.ourProducts": "Our Products",
     "footer.rights": "© {year} Thailand Kitchens. All rights reserved.",
+
+    "catalogue.eyebrow": "Free Download",
+    "catalogue.title": "Free Catalogue",
+    "catalogue.description":
+      "Download our latest kitchen catalogue instantly — no contact form required.",
+    "catalogue.fileTitle": "Thailand Kitchens Catalogue",
+    "catalogue.download": "Download PDF",
+    "catalogue.note": "PDF opens or downloads in your browser.",
+    "catalogue.contactLink": "Prefer a consultation? Contact us",
   },
   TH: {
     "nav.home": "หน้าแรก",
@@ -245,6 +267,17 @@ export const translations = {
 
     "home.catalog.eyebrow": "แรงบันดาลใจในการออกแบบ",
     "home.catalog.title": "แคตตาล็อกล่าสุดของเรา",
+    "home.catalog.lockTitle": "แคตตาล็อกถูกล็อก",
+    "home.catalog.lockDesc":
+      "กรุณากรอกแบบฟอร์มติดต่อก่อนเพื่อปลดล็อกการดาวน์โหลด PDF",
+    "home.catalog.lockHint": "ดาวน์โหลด PDF จะปลดล็อกหลังส่งแบบฟอร์มติดต่อ",
+    "home.catalog.lockCta": "ไปที่แบบฟอร์มติดต่อ",
+    "home.catalog.downloadStarted": "กำลังดาวน์โหลดแคตตาล็อก…",
+    "home.catalog.downloadBtn": "ดาวน์โหลด PDF",
+    "home.catalog.unlockBtn": "ปลดล็อกการดาวน์โหลด",
+    "home.catalog.downloading": "กำลังดาวน์โหลด…",
+    "home.catalog.downloadError": "ดาวน์โหลดไม่สำเร็จ",
+    "home.catalog.downloadErrorDesc": "ไม่พบไฟล์ PDF แคตตาล็อกบนเซิร์ฟเวอร์",
 
     "home.contact.eyebrow": "ปรึกษาออกแบบฟรี",
     "home.contact.title": "ติดต่อเรา",
@@ -268,6 +301,8 @@ export const translations = {
     "form.sending": "กำลังส่ง...",
     "form.successTitle": "ส่งข้อความแล้ว",
     "form.successDesc": "เราจะติดต่อคุณเร็วๆ นี้",
+    "form.successDescCatalog":
+      "ขอบคุณ! ตอนนี้คุณสามารถดาวน์โหลดแคตตาล็อกได้แล้ว",
     "form.errorTitle": "ส่งไม่สำเร็จ",
     "form.errorDesc": "กรุณาลองใหม่อีกครั้งในภายหลัง",
 
@@ -365,6 +400,15 @@ export const translations = {
     "footer.link.bestSeller": "สินค้าขายดี",
     "footer.link.ourProducts": "ผลิตภัณฑ์ของเรา",
     "footer.rights": "© {year} Thailand Kitchens สงวนลิขสิทธิ์",
+
+    "catalogue.eyebrow": "ดาวน์โหลดฟรี",
+    "catalogue.title": "แคตตาล็อกฟรี",
+    "catalogue.description":
+      "ดาวน์โหลดแคตตาล็อกครัวล่าสุดได้ทันที — ไม่ต้องกรอกแบบฟอร์มติดต่อ",
+    "catalogue.fileTitle": "แคตตาล็อก Thailand Kitchens",
+    "catalogue.download": "ดาวน์โหลด PDF",
+    "catalogue.note": "ไฟล์ PDF จะเปิดหรือดาวน์โหลดในเบราว์เซอร์ของคุณ",
+    "catalogue.contactLink": "ต้องการคำปรึกษา? ติดต่อเรา",
   },
   PL: {
     "nav.home": "Strona główna",
@@ -426,6 +470,18 @@ export const translations = {
 
     "home.catalog.eyebrow": "Inspiracje projektowe",
     "home.catalog.title": "Nasz najnowszy katalog",
+    "home.catalog.lockTitle": "Katalog zablokowany",
+    "home.catalog.lockDesc":
+      "Najpierw wypełnij formularz kontaktowy, aby odblokować pobieranie PDF.",
+    "home.catalog.lockHint":
+      "Pobieranie PDF odblokuje się po wysłaniu formularza kontaktowego.",
+    "home.catalog.lockCta": "Przejdź do formularza",
+    "home.catalog.downloadStarted": "Pobieranie katalogu…",
+    "home.catalog.downloadBtn": "Pobierz PDF",
+    "home.catalog.unlockBtn": "Odblokuj pobieranie",
+    "home.catalog.downloading": "Pobieranie…",
+    "home.catalog.downloadError": "Pobieranie nie powiodło się",
+    "home.catalog.downloadErrorDesc": "Brak pliku PDF katalogu na serwerze.",
 
     "home.contact.eyebrow": "Bezpłatna konsultacja projektowa",
     "home.contact.title": "Skontaktuj się",
@@ -450,6 +506,8 @@ export const translations = {
     "form.sending": "Wysyłanie...",
     "form.successTitle": "Wiadomość wysłana",
     "form.successDesc": "Wkrótce się z Tobą skontaktujemy.",
+    "form.successDescCatalog":
+      "Dziękujemy! Pobieranie katalogu jest już odblokowane.",
     "form.errorTitle": "Wysyłanie nie powiodło się",
     "form.errorDesc": "Spróbuj ponownie później.",
 
@@ -549,6 +607,15 @@ export const translations = {
     "footer.link.bestSeller": "Bestseller",
     "footer.link.ourProducts": "Nasze produkty",
     "footer.rights": "© {year} Thailand Kitchens. Wszelkie prawa zastrzeżone.",
+
+    "catalogue.eyebrow": "Darmowe pobieranie",
+    "catalogue.title": "Darmowy katalog",
+    "catalogue.description":
+      "Pobierz nasz najnowszy katalog kuchni od razu — bez formularza kontaktowego.",
+    "catalogue.fileTitle": "Katalog Thailand Kitchens",
+    "catalogue.download": "Pobierz PDF",
+    "catalogue.note": "PDF otworzy się lub pobierze w przeglądarce.",
+    "catalogue.contactLink": "Wolisz konsultację? Skontaktuj się",
   },
 } as const;
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "../i18n/LanguageProvider";
 import type { Locale } from "../i18n/translations";
+import { searchSiteContent } from "./navSearch";
 
 const languages = [
   { code: "EN" as const, label: "English", flag: "/en.png" },
@@ -15,11 +16,15 @@ const languages = [
 
 const Navbar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { locale, setLocale, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const closeSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedLanguage =
     languages.find((l) => l.code === locale) ?? languages[0];
@@ -33,8 +38,16 @@ const Navbar = () => {
     { href: "/faq", label: t("nav.faq") },
   ];
 
+  const searchResults = useMemo(() => searchSiteContent(search, 8), [search]);
+
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  useEffect(() => {
+    return () => {
+      if (closeSearchTimer.current) clearTimeout(closeSearchTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -43,9 +56,128 @@ const Navbar = () => {
     };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    setMobileOpen(false);
+    setIsOpen(false);
+    setSearchOpen(false);
+    setSearch("");
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (
+        desktopSearchRef.current &&
+        !desktopSearchRef.current.contains(event.target as Node)
+      ) {
+        setSearchOpen(false);
+        setSearch("");
+      }
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [searchOpen]);
+
+  const openSearch = () => {
+    if (closeSearchTimer.current) {
+      clearTimeout(closeSearchTimer.current);
+      closeSearchTimer.current = null;
+    }
+    setIsOpen(false);
+    setSearchOpen(true);
+  };
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const id = window.setTimeout(() => searchInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(id);
+  }, [searchOpen]);
+
+  const closeSearchOnLeave = () => {
+    if (closeSearchTimer.current) clearTimeout(closeSearchTimer.current);
+    closeSearchTimer.current = setTimeout(() => {
+      searchInputRef.current?.blur();
+      setSearchOpen(false);
+      setSearch("");
+    }, 100);
+  };
+
+  const toggleSearch = () => {
+    if (searchOpen) {
+      searchInputRef.current?.blur();
+      setSearchOpen(false);
+      setSearch("");
+      return;
+    }
+    openSearch();
+  };
+
   const selectLanguage = (code: Locale) => {
     setLocale(code);
     setIsOpen(false);
+  };
+
+  const goToResult = (href: string) => {
+    setSearch("");
+    setSearchOpen(false);
+    setMobileOpen(false);
+
+    // Same page: do not scroll / move sections
+    if (href === pathname) return;
+
+    router.push(href);
+  };
+
+  const SearchResultsList = ({ mobile = false }: { mobile?: boolean }) => {
+    if (!search.trim()) return null;
+
+    if (searchResults.length === 0) {
+      return (
+        <div
+          className={`${
+            mobile
+              ? "mt-2 rounded-2xl border border-black/5 bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+              : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-black/5 bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-50"
+          }`}
+        >
+          <p className="text-sm text-gray-500">No results found</p>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`${
+          mobile
+            ? "mt-2 rounded-2xl border border-black/5 bg-white overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-black/5 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-50 overflow-hidden"
+        }`}
+      >
+        <ul className="max-h-80 overflow-y-auto py-1">
+          {searchResults.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={() => goToResult(item.href)}
+                className="w-full text-left px-4 py-3 hover:bg-[#F5F3EF] transition"
+              >
+                <p className="text-[10px] tracking-[0.16em] uppercase text-[#E0905A] font-semibold mb-1">
+                  {item.type}
+                </p>
+                <p className="text-sm font-semibold text-[#1A1A1A] leading-snug line-clamp-1">
+                  {item.title}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 leading-5 line-clamp-2">
+                  {item.description}
+                </p>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
   };
 
   return (
@@ -60,14 +192,14 @@ const Navbar = () => {
             <Image
               src="/logo1.png"
               alt="Thailand Kitchens"
-              width={160}
-              height={66}
+              width={165}
+              height={70}
               priority
               className="w-auto h-11 sm:h-12"
             />
           </Link>
 
-          <nav className="hidden lg:flex items-center bg-white rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.08)] px-3 py-1.5 gap-0.5">
+          <nav className="hidden lg:flex items-center bg-white rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-3 py-1.5 gap-0.5">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -84,27 +216,55 @@ const Navbar = () => {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:flex items-center gap-2">
+            <div
+              className={`relative hidden sm:block shrink-0 ${
+                searchOpen ? "w-[15.5rem] h-10" : "w-10 h-10"
+              }`}
+              ref={desktopSearchRef}
+              onMouseEnter={openSearch}
+              onMouseLeave={(e) => {
+                const next = e.relatedTarget as Node | null;
+                if (next && desktopSearchRef.current?.contains(next)) return;
+                closeSearchOnLeave();
+              }}
+            >
               <div
-                className={`transition-all duration-300 overflow-hidden ${
-                  searchOpen ? "w-40 opacity-100" : "w-0 opacity-0"
+                className={`absolute right-0 top-1/2 z-50 flex h-10 -translate-y-1/2 items-center transition-all duration-300 ease-out ${
+                  searchOpen
+                    ? "w-[15.5rem] gap-2 rounded-full border border-[#D4C4B0] bg-[#F5F3EF] pl-4 pr-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                    : "w-10 justify-center"
                 }`}
               >
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={t("nav.search")}
-                  className="w-full rounded-full border border-[#D4C4B0] bg-white px-4 py-2 text-sm outline-none shadow-md"
-                />
+                {searchOpen ? (
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onFocus={openSearch}
+                    placeholder={t("nav.search")}
+                    className="h-full min-w-0 flex-1 bg-transparent border-0 text-sm text-[#1A1A1A] caret-[#1A1A1A] placeholder:text-gray-400 outline-none"
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  onClick={toggleSearch}
+                  aria-label="Toggle search"
+                  className={`shrink-0 flex items-center justify-center rounded-full bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:bg-gray-50 transition ${
+                    searchOpen ? "w-8 h-8" : "w-10 h-10"
+                  }`}
+                >
+                  <Image
+                    src="/Search.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="block object-contain"
+                  />
+                </button>
               </div>
-              <button
-                onClick={() => setSearchOpen(!searchOpen)}
-                aria-label="Toggle search"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:bg-gray-50 transition"
-              >
-                <Image src="/Search.svg" alt="" width={18} height={18} />
-              </button>
+
+              {searchOpen ? <SearchResultsList /> : null}
             </div>
 
             <div className="relative hidden sm:flex items-center">
@@ -132,7 +292,7 @@ const Navbar = () => {
               </button>
 
               {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.1)] border border-black/5 overflow-hidden z-50">
+                <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-black/5 overflow-hidden z-50">
                   {languages.map((language) => (
                     <button
                       key={language.code}
@@ -167,7 +327,12 @@ const Navbar = () => {
             </Link>
 
             <button
-              onClick={() => setMobileOpen(!mobileOpen)}
+              type="button"
+              onClick={() => {
+                setMobileOpen((open) => !open);
+                setIsOpen(false);
+                setSearchOpen(false);
+              }}
               aria-label="Toggle menu"
               aria-expanded={mobileOpen}
               className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition"
@@ -195,11 +360,13 @@ const Navbar = () => {
       </div>
 
       <div
-        className={`lg:hidden fixed inset-x-0 top-full bg-white border-b border-black/5 shadow-lg overflow-hidden transition-all duration-300 ${
-          mobileOpen ? "max-h-[calc(100vh-5rem)] opacity-100" : "max-h-0 opacity-0"
+        className={`lg:hidden absolute inset-x-0 top-full z-50 bg-white border-b border-black/5 shadow-[0_12px_40px_rgba(0,0,0,0.12)] overflow-hidden transition-all duration-300 ease-out ${
+          mobileOpen
+            ? "max-h-[min(80vh,640px)] opacity-100 pointer-events-auto visible"
+            : "max-h-0 opacity-0 pointer-events-none invisible"
         }`}
       >
-        <nav className="flex flex-col px-4 sm:px-6 py-4 gap-1">
+        <nav className="flex flex-col px-4 sm:px-6 py-4 gap-1 overflow-y-auto max-h-[min(80vh,640px)]">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -221,16 +388,21 @@ const Navbar = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("nav.search")}
-              className="w-full rounded-full border border-[#D4C4B0] bg-white px-4 py-2.5 text-sm outline-none shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+              className="w-full rounded-full border border-[#D4C4B0] bg-[#F5F3EF] px-4 py-2.5 text-sm text-[#1A1A1A] caret-[#1A1A1A] placeholder:text-gray-400 outline-none shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
             />
+            <SearchResultsList mobile />
           </div>
 
-          <div className="sm:hidden flex gap-2 pt-2">
+          <div className="sm:hidden flex flex-wrap gap-2 pt-2">
             {languages.map((language) => (
               <button
                 key={language.code}
-                onClick={() => selectLanguage(language.code)}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold border transition bg-white ${
+                type="button"
+                onClick={() => {
+                  selectLanguage(language.code);
+                  setMobileOpen(false);
+                }}
+                className={`flex flex-1 min-w-[30%] items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold border transition bg-white ${
                   locale === language.code
                     ? "border-[#B38B6D] text-[#1A1A1A] shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                     : "border-gray-200 text-gray-500"

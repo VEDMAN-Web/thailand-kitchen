@@ -1,17 +1,4 @@
-import mongoose from "mongoose";
-
-const contactSchema = new mongoose.Schema(
-  {
-    fullName: { type: String, required: true },
-    email: { type: String, required: true, lowercase: true },
-    whatsappNumber: { type: String, required: true },
-    phoneNumber: { type: String, required: true },
-    cityName: { type: String, required: true },
-    countryName: { type: String, required: true },
-    message: { type: String },
-  },
-  { timestamps: true }
-);
-
-export const Contact =
-  mongoose.models.User || mongoose.model("User", contactSchema);
+// Removed: contact submissions now go through src/lib/mongodb.ts (native
+// MongoDB driver) instead of Mongoose. This file is kept only because the
+// sandbox could not delete it from disk; it is intentionally empty.
+export {};

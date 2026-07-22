@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   footerLinks,
   contactInfo,
@@ -61,8 +62,48 @@ function SocialIcon({ name }: { name: SocialIconName }) {
   }
 }
 
+function scrollToFooterTarget(href: string) {
+  const hash = href.includes("#") ? href.split("#")[1] : "";
+
+  const run = () => {
+    if (hash) {
+      const el = document.getElementById(hash);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Allow route paint / query updates before scrolling
+  window.setTimeout(run, 50);
+  window.setTimeout(run, 250);
+}
+
 export default function Footer() {
   const { t } = useTranslation();
+  const router = useRouter();
+
+  const handleFooterNav = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) => {
+    e.preventDefault();
+
+    const url = new URL(href, window.location.origin);
+    const nextPath = `${url.pathname}${url.search}`;
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    const samePage = nextPath === currentPath;
+
+    if (samePage) {
+      scrollToFooterTarget(href);
+      return;
+    }
+
+    router.push(`${url.pathname}${url.search}${url.hash}`);
+    scrollToFooterTarget(href);
+  };
 
   return (
     <footer className="relative overflow-hidden bg-[#1A1A1A]">
@@ -100,12 +141,13 @@ export default function Footer() {
             </h3>
             <ul className="space-y-4">
               {footerLinks.home.map((item) => (
-                <li key={item}>
+                <li key={item.key}>
                   <Link
-                    href="#"
+                    href={item.href}
+                    onClick={(e) => handleFooterNav(e, item.href)}
                     className="text-white/70 text-sm hover:text-white transition"
                   >
-                    {t(item)}
+                    {t(item.key)}
                   </Link>
                 </li>
               ))}
@@ -118,12 +160,13 @@ export default function Footer() {
             </h3>
             <ul className="space-y-4">
               {footerLinks.product.map((item) => (
-                <li key={item}>
+                <li key={item.key}>
                   <Link
-                    href="#"
+                    href={item.href}
+                    onClick={(e) => handleFooterNav(e, item.href)}
                     className="text-white/70 text-sm hover:text-white transition"
                   >
-                    {t(item)}
+                    {t(item.key)}
                   </Link>
                 </li>
               ))}
