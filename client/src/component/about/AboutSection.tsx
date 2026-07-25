@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useTranslation } from "../../i18n/LanguageProvider";
 
 export default function AboutSection() {
@@ -69,7 +70,7 @@ export default function AboutSection() {
               className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-[#1A1A1A] transition-colors duration-500 group-hover:text-[#E0905A]"
             >
               {t("home.about.cta")}
-              <span aria-hidden>→</span>
+              <ArrowRight size={16} aria-hidden />
             </Link>
           </div>
         </div>

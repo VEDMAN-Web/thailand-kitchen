@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import StatsSection from "./section";
 import AboutSection from "./about/AboutSection";
 import CraftBar from "./features/CraftBar";
@@ -73,7 +74,7 @@ function HomePage() {
                     className="mt-8 inline-flex items-center gap-2 bg-white text-[#1A1A1A] px-7 py-3.5 rounded-full text-sm font-semibold hover:bg-gray-100 transition"
                   >
                     {t("home.hero.cta")}
-                    <span aria-hidden>↗</span>
+                    <ArrowUpRight size={16} aria-hidden />
                   </Link>
                 </div>
               </div>
@@ -103,7 +104,7 @@ function HomePage() {
               className="shrink-0 hidden sm:inline-flex gap-2 items-center bg-[#1A1A1A] text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-black transition"
             >
               {t("home.products.cta")}
-              <span aria-hidden>↗</span>
+              <ArrowUpRight size={16} aria-hidden />
             </Link>
           </div>
         </section>

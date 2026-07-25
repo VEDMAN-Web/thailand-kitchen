@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpRight } from "lucide-react";
 import HomeContactInput from "../contactUs/HomeContactInput";
 import useContact from "../../hooks/useContact";
 import { useTranslation } from "../../i18n/LanguageProvider";
@@ -49,7 +50,7 @@ export default function ProductDetailContactForm() {
           className="inline-flex items-center gap-2 bg-[#1A1A1A] text-white px-8 py-3.5 rounded-full text-sm font-semibold hover:bg-black transition disabled:opacity-70"
         >
           {loading ? t("form.sending") : t("form.submit")}
-          {!loading && <span aria-hidden>↗</span>}
+          {!loading && <ArrowUpRight size={16} aria-hidden />}
         </button>
       </div>
     </form>

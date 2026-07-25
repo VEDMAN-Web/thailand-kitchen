@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { BlogPost, getRelatedPosts } from "./blogData";
 import BlogCard from "./BlogCard";
 import Footer from "../Footer/footer";
@@ -169,7 +170,7 @@ export default function BlogDetailView({ post }: Props) {
                 className="shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-[#1A1A1A] hover:text-[#E0905A] transition"
               >
                 {t("blog.detail.viewAll")}
-                <span aria-hidden>→</span>
+                <ArrowRight size={16} aria-hidden />
               </Link>
             </div>
 

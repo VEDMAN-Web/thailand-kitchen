@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { Download, ArrowRight } from "lucide-react";
 import Footer from "../../component/Footer/footer";
 import { useTranslation } from "../../i18n/LanguageProvider";
 import ConsultationEnquiryModal from "../../component/ConsultationEnquiryModal";
@@ -86,9 +86,10 @@ export default function CataloguePage() {
 
           <Link
             href="/contact"
-            className="mt-10 inline-flex text-sm font-medium text-[#1A1A1A] hover:text-[#E0905A] transition"
+            className="mt-10 inline-flex items-center gap-1.5 text-sm font-medium text-[#1A1A1A] hover:text-[#E0905A] transition"
           >
-            {t("catalogue.contactLink")} →
+            {t("catalogue.contactLink")}
+            <ArrowRight size={16} aria-hidden />
           </Link>
         </div>
       </section>

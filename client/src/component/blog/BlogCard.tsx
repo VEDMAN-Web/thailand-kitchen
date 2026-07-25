@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { BlogPost } from "./blogData";
 import { useTranslation } from "../../i18n/LanguageProvider";
 
@@ -46,7 +47,7 @@ export default function BlogCard({ post }: Props) {
         className="mt-5 inline-flex items-center gap-2 text-[#E0905A] text-sm font-semibold tracking-[0.12em] uppercase hover:gap-3 transition-all"
       >
         {t("blog.readArticle")}
-        <span aria-hidden>→</span>
+        <ArrowRight size={16} aria-hidden />
       </Link>
     </article>
   );

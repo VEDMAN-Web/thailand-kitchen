@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { ProductItem } from "./productData";
 import { useTranslation } from "../../i18n/LanguageProvider";
 
@@ -51,7 +52,7 @@ export default function ProductCard({ product }: Props) {
           className="mt-6 inline-flex items-center justify-center gap-2 w-full h-12 rounded-full bg-[#1A1A1A] text-white text-sm font-semibold hover:bg-black transition"
         >
           {t("products.viewDetails")}
-          <span aria-hidden>↗</span>
+          <ArrowUpRight size={16} aria-hidden />
         </Link>
       </div>
     </article>

@@ -135,7 +135,7 @@ export default function Footer() {
             </div>
 
             <p className="mt-6 mb-0 text-white text-sm leading-6 max-w-xs">
-              Co-Partnered with Livio.design by OppoliaHome
+              Co-Partnered with Livio.design by OppoliaHome.com
             </p>
           </div>
 

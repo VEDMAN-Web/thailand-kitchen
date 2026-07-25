@@ -23,10 +23,6 @@ export const contactInfo = [
     text: "Pattaya Office:\n82, 48-49 Chaiyaphruek 2 Rd, Pattaya City, Bang Lamung District, Chon Buri 20150",
   },
   {
-    icon: "/footer/location.png",
-    text: "Samui Office:\nRoute 4169, Mae Nam, Amphoe Ko Samui, Surat Thani 84330",
-  },
-  {
     icon: "/footer/email.png",
     text: "hi@thailandkitchens.com",
   },
