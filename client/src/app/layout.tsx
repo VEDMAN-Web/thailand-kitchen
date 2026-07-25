@@ -19,9 +19,37 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
+const siteUrl = "https://www.thailandkitchens.com";
+const siteTitle = "Thailand Kitchens";
+const siteDescription =
+  "Thailand Kitchens — bespoke kitchen design and craftsmanship, bridging Thai heritage with modern living. Offices in Samui, Phuket, and Pattaya.";
+const ogImage = `${siteUrl}/logo1.png`;
+
 export const metadata: Metadata = {
-  title: "Thailand Kitchens",
-  description: "Thailand Kitchens Website",
+  metadataBase: new URL(siteUrl),
+  title: siteTitle,
+  description: siteDescription,
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    url: siteUrl,
+    siteName: siteTitle,
+    images: [
+      {
+        url: ogImage,
+        width: 1072,
+        height: 394,
+        alt: "Thailand Kitchens",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: [ogImage],
+  },
 };
 
 export default function RootLayout({

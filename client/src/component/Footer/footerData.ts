@@ -20,23 +20,27 @@ export const footerLinks: {
 export const contactInfo = [
   {
     icon: "/footer/location.png",
-    text: "Cyber City, 610, Surat, Gujarat 394105",
+    text: "Pattaya Office:\n82, 48-49 Chaiyaphruek 2 Rd, Pattaya City, Bang Lamung District, Chon Buri 20150",
+  },
+  {
+    icon: "/footer/location.png",
+    text: "Samui Office:\nRoute 4169, Mae Nam, Amphoe Ko Samui, Surat Thani 84330",
   },
   {
     icon: "/footer/email.png",
-    text: "hello@Thaikitchen.in",
+    text: "hi@thailandkitchens.com",
   },
   {
     icon: "/footer/calling.png",
-    text: "+91 98765 43210",
+    text: "+66 64 683 9777",
   },
 ];
 
 export type SocialIconName = "instagram" | "facebook" | "whatsapp" | "x";
 
 export const socialLinks: { name: SocialIconName; link: string; label: string }[] = [
-  { name: "instagram", link: "https://www.instagram.com/?hl=en", label: "Instagram" },
-  { name: "facebook", link: "https://www.facebook.com/", label: "Facebook" },
-  { name: "whatsapp", link: "https://web.whatsapp.com/", label: "WhatsApp" },
+  { name: "instagram", link: "https://www.facebook.com/ThailandKitchens/", label: "Instagram" },
+  { name: "facebook", link: "https://www.facebook.com/ThailandKitchens/", label: "Facebook" },
+  { name: "whatsapp", link: "https://wa.me/66646839777", label: "WhatsApp" },
   { name: "x", link: "https://x.com/", label: "X" },
 ];
