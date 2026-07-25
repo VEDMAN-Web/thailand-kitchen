@@ -1,14 +1,40 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import Footer from "../../component/Footer/footer";
 import { useTranslation } from "../../i18n/LanguageProvider";
+import ConsultationEnquiryModal from "../../component/ConsultationEnquiryModal";
 
-/** Free catalogue page — PDF download without contact form */
+/** Free catalogue page — PDF download gated behind the consultation enquiry form */
 export default function CataloguePage() {
   const { t } = useTranslation();
+  const [enquiryOpen, setEnquiryOpen] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+  const downloadRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    fetch("/api/catalog/status", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setUnlocked(Boolean(data.unlocked)))
+      .catch(() => setUnlocked(false));
+  }, []);
+
+  const handleDownloadClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!unlocked) {
+      e.preventDefault();
+      setEnquiryOpen(true);
+    }
+    // If already unlocked, let the anchor's native download behavior proceed.
+  };
+
+  const handleEnquirySuccess = () => {
+    setUnlocked(true);
+    // Let the modal finish closing, then kick off the real download.
+    setTimeout(() => downloadRef.current?.click(), 150);
+  };
 
   return (
     <div className="w-full min-h-screen bg-[#F5F3EF]">
@@ -43,8 +69,10 @@ export default function CataloguePage() {
                 {t("catalogue.fileTitle")}
               </h2>
               <a
+                ref={downloadRef}
                 href="/catlog/catalogue.pdf"
                 download="Thailand-Kitchens-Catalogue.pdf"
+                onClick={handleDownloadClick}
                 className="mt-6 inline-flex items-center justify-center gap-2 w-full bg-[#1A1A1A] text-white px-6 py-3.5 rounded-full text-sm font-semibold hover:bg-black transition"
               >
                 <Download size={18} />
@@ -65,6 +93,11 @@ export default function CataloguePage() {
         </div>
       </section>
       <Footer />
+      <ConsultationEnquiryModal
+        open={enquiryOpen}
+        onClose={() => setEnquiryOpen(false)}
+        onSuccess={handleEnquirySuccess}
+      />
     </div>
   );
 }

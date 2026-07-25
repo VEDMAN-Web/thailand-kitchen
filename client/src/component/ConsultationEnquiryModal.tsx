@@ -63,6 +63,8 @@ const methods: {
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** Called after the enquiry is successfully submitted (and catalogue access unlocked), before the modal closes. */
+  onSuccess?: () => void;
 };
 
 const initialForm = {
@@ -73,7 +75,7 @@ const initialForm = {
   message: "",
 };
 
-export default function ConsultationEnquiryModal({ open, onClose }: Props) {
+export default function ConsultationEnquiryModal({ open, onClose, onSuccess }: Props) {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof typeof initialForm, string>>>({});
   const [loading, setLoading] = useState(false);
@@ -149,6 +151,7 @@ export default function ConsultationEnquiryModal({ open, onClose }: Props) {
       toast.success("Message Sent", {
         description: "We will contact you soon.",
       });
+      onSuccess?.();
       onClose();
     } catch (err: unknown) {
       const apiMessage =
