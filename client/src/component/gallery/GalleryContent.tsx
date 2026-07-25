@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   galleryItems,
   galleryCategories,
@@ -18,9 +19,37 @@ const categoryKeyMap: Record<GalleryCategory, TranslationKey> = {
   Materials: "gallery.filter.materials",
 };
 
+function categoryToSlug(cat: GalleryCategory) {
+  return cat
+    .toLowerCase()
+    .replace(/\s*&\s*/g, "-")
+    .replace(/\s+/g, "-");
+}
+
+function categoryFromQuery(value: string | null): GalleryCategory | null {
+  if (!value) return null;
+  const normalized = value
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/-+/g, "-");
+  return (
+    galleryCategories.find((cat) => categoryToSlug(cat) === normalized) ?? null
+  );
+}
+
 export default function GalleryContent() {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
   const [active, setActive] = useState<GalleryCategory>("All");
+
+  useEffect(() => {
+    const fromQuery =
+      categoryFromQuery(searchParams.get("tab")) ||
+      categoryFromQuery(searchParams.get("filter"));
+    if (fromQuery) {
+      setActive(fromQuery);
+    }
+  }, [searchParams]);
 
   const items =
     active === "All"
@@ -35,7 +64,13 @@ export default function GalleryContent() {
           {galleryCategories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setActive(cat)}
+              type="button"
+              onClick={() => {
+                setActive(cat);
+                const url = new URL(window.location.href);
+                url.searchParams.set("tab", categoryToSlug(cat));
+                window.history.replaceState({}, "", url.toString());
+              }}
               className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
                 active === cat
                   ? "bg-[#1A1A1A] text-white"

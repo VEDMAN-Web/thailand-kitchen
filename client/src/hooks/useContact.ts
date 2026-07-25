@@ -55,8 +55,14 @@ export default function useContact() {
   ) => {
     e.preventDefault();
 
+    const phone = formData.phoneNumber.trim();
     const payload: ContactData = {
       ...formData,
+      phoneNumber: phone,
+      // Forms no longer collect these; keep API/DB contracts intact.
+      whatsappNumber: phone,
+      cityName: "Not provided",
+      countryName: "Not provided",
       message:
         formData.message.trim() ||
         `Contact page inquiry from ${formData.fullName || "visitor"}. Please follow up regarding kitchen consultation.`,

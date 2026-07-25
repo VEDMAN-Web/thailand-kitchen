@@ -31,37 +31,16 @@ export default function ProductDetailContactForm() {
         error={errors.email}
       />
 
-      <HomeContactInput
-        label={t("form.country")}
-        name="countryName"
-        value={formData.countryName}
-        onChange={handleChange}
-        error={errors.countryName}
-      />
-
-      <HomeContactInput
-        label={t("form.city")}
-        name="cityName"
-        value={formData.cityName}
-        onChange={handleChange}
-        error={errors.cityName}
-      />
-
-      <HomeContactInput
-        label={t("form.phone")}
-        name="phoneNumber"
-        value={formData.phoneNumber}
-        onChange={handleChange}
-        error={errors.phoneNumber}
-      />
-
-      <HomeContactInput
-        label={t("form.whatsapp")}
-        name="whatsappNumber"
-        value={formData.whatsappNumber}
-        onChange={handleChange}
-        error={errors.whatsappNumber}
-      />
+      <div className="sm:col-span-2">
+        <HomeContactInput
+          label={t("form.phoneWhatsapp")}
+          name="phoneNumber"
+          type="tel"
+          value={formData.phoneNumber}
+          onChange={handleChange}
+          error={errors.phoneNumber}
+        />
+      </div>
 
       <div className="sm:col-span-2 pt-2">
         <button

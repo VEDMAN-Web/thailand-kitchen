@@ -9,11 +9,6 @@ import {
 import { useTranslation } from "../../i18n/LanguageProvider";
 import type { TranslationKey } from "../../i18n/translations";
 
-const locationTitleKeys: Record<number, TranslationKey> = {
-  1: "contact.location.bangkok",
-  2: "contact.location.ahmedabad",
-};
-
 const contactLabelKeys: Record<string, TranslationKey> = {
   "Email Us": "contact.emailUs",
   "Call Us": "contact.callUs",
@@ -102,7 +97,7 @@ export default function ContactInfoPanel() {
               <MapPinIcon />
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wide text-[#1A1A1A]">
-                  {t(locationTitleKeys[location.id])}
+                  {location.title}
                 </h3>
                 <p className="mt-1 text-sm text-[#6B6B6B] leading-6 whitespace-pre-line">
                   {location.address}
