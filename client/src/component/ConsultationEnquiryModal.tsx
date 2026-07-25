@@ -191,7 +191,10 @@ export default function ConsultationEnquiryModal({ open, onClose, onSuccess }: P
       />
 
       <div className="relative z-10 w-full max-w-[340px] bg-white rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] p-4 sm:p-5 overflow-hidden">
-        <div className="flex justify-end mb-1">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[15px] font-semibold text-[#1A1A1A]">
+            Free Consultation
+          </h3>
           <button
             type="button"
             onClick={onClose}
