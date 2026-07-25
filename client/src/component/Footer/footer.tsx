@@ -133,10 +133,6 @@ export default function Footer() {
                 </Link>
               ))}
             </div>
-
-            <p className="mt-6 mb-0 text-white text-sm leading-6 max-w-xs">
-              Co-Partnered with Livio.design by OppoliaHome.com
-            </p>
           </div>
 
           <div>
@@ -195,6 +191,18 @@ export default function Footer() {
             </div>
           </div>
         </div>
+
+        <p className="mt-10 whitespace-nowrap overflow-x-auto text-white text-sm leading-6">
+          Co-Partnered with Livio.design by{" "}
+          <a
+            href="https://oppoliahome.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-white/40 hover:text-[#B38B6D] hover:decoration-[#B38B6D] transition-colors"
+          >
+            OppoliaHome.com
+          </a>
+        </p>
 
         <div className="relative mt-10 pt-8 border-t border-white/10">
           <p className="pointer-events-none select-none absolute left-0 right-0 -top-6 text-center text-[12vw] leading-none font-semibold text-white/[0.04] tracking-tight whitespace-nowrap overflow-hidden">
