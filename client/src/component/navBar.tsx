@@ -6,8 +6,68 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "../i18n/LanguageProvider";
 import type { Locale } from "../i18n/translations";
-import { searchSiteContent } from "./navSearch";
+import { searchSiteContent, type NavSearchResult } from "./navSearch";
 import ConsultationEnquiryModal from "./ConsultationEnquiryModal";
+
+function SearchResultsList({
+  mobile = false,
+  search,
+  results,
+  onSelect,
+}: {
+  mobile?: boolean;
+  search: string;
+  results: NavSearchResult[];
+  onSelect: (href: string) => void;
+}) {
+  if (!search.trim()) return null;
+
+  if (results.length === 0) {
+    return (
+      <div
+        className={`${
+          mobile
+            ? "mt-2 rounded-2xl border border-black/5 bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-black/5 bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-50"
+        }`}
+      >
+        <p className="text-sm text-gray-500">No results found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${
+        mobile
+          ? "mt-2 rounded-2xl border border-black/5 bg-white overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+          : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-black/5 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-50 overflow-hidden"
+      }`}
+    >
+      <ul className="max-h-80 overflow-y-auto py-1">
+        {results.map((item) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              onClick={() => onSelect(item.href)}
+              className="w-full text-left px-4 py-3 hover:bg-[#F5F3EF] transition"
+            >
+              <p className="text-[10px] tracking-[0.16em] uppercase text-[#E0905A] font-semibold mb-1">
+                {item.type}
+              </p>
+              <p className="text-sm font-semibold text-[#1A1A1A] leading-snug line-clamp-1">
+                {item.title}
+              </p>
+              <p className="mt-1 text-xs text-gray-500 leading-5 line-clamp-2">
+                {item.description}
+              </p>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 const languages = [
   { code: "EN" as const, label: "English", flag: "/en.png" },
@@ -132,58 +192,7 @@ const Navbar = () => {
     router.push(href);
   };
 
-  const SearchResultsList = ({ mobile = false }: { mobile?: boolean }) => {
-    if (!search.trim()) return null;
-
-    if (searchResults.length === 0) {
-      return (
-        <div
-          className={`${
-            mobile
-              ? "mt-2 rounded-2xl border border-black/5 bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-              : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-black/5 bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-50"
-          }`}
-        >
-          <p className="text-sm text-gray-500">No results found</p>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        className={`${
-          mobile
-            ? "mt-2 rounded-2xl border border-black/5 bg-white overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-            : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-black/5 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)] z-50 overflow-hidden"
-        }`}
-      >
-        <ul className="max-h-80 overflow-y-auto py-1">
-          {searchResults.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => goToResult(item.href)}
-                className="w-full text-left px-4 py-3 hover:bg-[#F5F3EF] transition"
-              >
-                <p className="text-[10px] tracking-[0.16em] uppercase text-[#E0905A] font-semibold mb-1">
-                  {item.type}
-                </p>
-                <p className="text-sm font-semibold text-[#1A1A1A] leading-snug line-clamp-1">
-                  {item.title}
-                </p>
-                <p className="mt-1 text-xs text-gray-500 leading-5 line-clamp-2">
-                  {item.description}
-                </p>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  };
-
   return (
-    <>
     <header className="fixed top-0 left-0 w-full z-50 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
       <div className="w-full px-6 sm:px-8 lg:px-10 py-3">
         <div className="flex items-center justify-between gap-4">
@@ -267,7 +276,13 @@ const Navbar = () => {
                 </button>
               </div>
 
-              {searchOpen ? <SearchResultsList /> : null}
+              {searchOpen ? (
+                <SearchResultsList
+                  search={search}
+                  results={searchResults}
+                  onSelect={goToResult}
+                />
+              ) : null}
             </div>
 
             <div className="relative hidden sm:flex items-center">
@@ -394,7 +409,12 @@ const Navbar = () => {
               placeholder={t("nav.search")}
               className="w-full rounded-full border border-[#D4C4B0] bg-[#F5F3EF] px-4 py-2.5 text-sm text-[#1A1A1A] caret-[#1A1A1A] placeholder:text-gray-400 outline-none shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
             />
-            <SearchResultsList mobile />
+            <SearchResultsList
+              mobile
+              search={search}
+              results={searchResults}
+              onSelect={goToResult}
+            />
           </div>
 
           <div className="sm:hidden flex flex-wrap gap-2 pt-2">
@@ -434,11 +454,6 @@ const Navbar = () => {
         </nav>
       </div>
     </header>
-    <ConsultationEnquiryModal
-      open={enquiryOpen}
-      onClose={() => setEnquiryOpen(false)}
-    />
-    </>
   );
 };
 

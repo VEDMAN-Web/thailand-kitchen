@@ -1,6 +1,7 @@
 "use client";
 
 import { Swiper, SwiperSlide } from "swiper/react";
+import type { Swiper as SwiperClass } from "swiper/types";
 
 import "swiper/css";
 
@@ -33,9 +34,11 @@ export default function AboutSection() {
 
           loop
 
-          onBeforeInit={(swiper: any) => {
-            swiper.params.navigation.prevEl = prevRef.current;
-            swiper.params.navigation.nextEl = nextRef.current;
+          onBeforeInit={(swiper: SwiperClass) => {
+            if (swiper.params.navigation && typeof swiper.params.navigation === "object") {
+              swiper.params.navigation.prevEl = prevRef.current;
+              swiper.params.navigation.nextEl = nextRef.current;
+            }
           }}
 
         >
