@@ -183,6 +183,7 @@ const Navbar = () => {
   };
 
   return (
+    <>
     <header className="fixed top-0 left-0 w-full z-50 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
       <div className="w-full px-6 sm:px-8 lg:px-10 py-3">
         <div className="flex items-center justify-between gap-4">
@@ -433,6 +434,11 @@ const Navbar = () => {
         </nav>
       </div>
     </header>
+    <ConsultationEnquiryModal
+      open={enquiryOpen}
+      onClose={() => setEnquiryOpen(false)}
+    />
+    </>
   );
 };
 
