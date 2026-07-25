@@ -14,15 +14,15 @@ export const contactQuote = {
 export const contactLocations = [
   {
     id: 1,
-    title: "Bangkok Showroom",
+    title: "Pattaya Office:",
     address:
-      "102 Sukhumvit Soi 24, Klongtan, Klongtoey,\nBangkok 10110, Thailand",
+      "82, 48-49 Chaiyaphruek 2 Rd, Pattaya City, Bang Lamung District, Chon Buri 20150",
   },
   {
     id: 2,
-    title: "Ahmedabad Studio",
+    title: "Samui Office:",
     address:
-      "Titanium Business Park, Makarba,\nAhmedabad, Gujarat 380051, India",
+      "Route 4169, Mae Nam, Amphoe Ko Samui, Surat Thani 84330",
   },
 ];
 
@@ -30,13 +30,13 @@ export const contactDetails = [
   {
     id: 1,
     label: "Email Us",
-    value: "hello@thailandkitchens.in",
+    value: "hi@thailandkitchens.com",
     type: "email" as const,
   },
   {
     id: 2,
     label: "Call Us",
-    value: "+66 2 123 4567",
+    value: "+66 64 683 9777",
     type: "phone" as const,
   },
 ];

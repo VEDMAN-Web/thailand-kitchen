@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "../i18n/LanguageProvider";
 import type { Locale } from "../i18n/translations";
 import { searchSiteContent } from "./navSearch";
+import ConsultationEnquiryModal from "./ConsultationEnquiryModal";
 
 const languages = [
   { code: "EN" as const, label: "English", flag: "/en.png" },
@@ -22,6 +23,7 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [enquiryOpen, setEnquiryOpen] = useState(false);
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const closeSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -192,10 +194,10 @@ const Navbar = () => {
             <Image
               src="/logo1.png"
               alt="Thailand Kitchens"
-              width={165}
-              height={70}
+              width={200}
+              height={72}
               priority
-              className="w-auto h-11 sm:h-12"
+              className="w-auto h-12 sm:h-14"
             />
           </Link>
 
@@ -319,12 +321,13 @@ const Navbar = () => {
               )}
             </div>
 
-            <Link
-              href="/contact"
+            <button
+              type="button"
+              onClick={() => setEnquiryOpen(true)}
               className="hidden sm:inline-flex items-center bg-white hover:bg-gray-50 text-[#1A1A1A] px-4 lg:px-5 py-2.5 rounded-full font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition text-xs sm:text-sm whitespace-nowrap h-[42px]"
             >
               {t("nav.consultation")}
-            </Link>
+            </button>
 
             <button
               type="button"
