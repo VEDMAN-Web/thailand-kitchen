@@ -10,6 +10,7 @@ import {
 } from "./galleryData";
 import { useTranslation } from "../../i18n/LanguageProvider";
 import type { TranslationKey } from "../../i18n/translations";
+import { fetchMergedGallery, type CmsGallery } from "../../services/cmsPublic";
 
 const categoryKeyMap: Record<GalleryCategory, TranslationKey> = {
   All: "gallery.filter.all",
@@ -41,6 +42,13 @@ export default function GalleryContent() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const [active, setActive] = useState<GalleryCategory>("All");
+  const [itemsAll, setItemsAll] = useState<CmsGallery[]>(galleryItems);
+
+  useEffect(() => {
+    fetchMergedGallery().then((list) => {
+      if (list?.length) setItemsAll(list);
+    });
+  }, []);
 
   useEffect(() => {
     const fromQuery =
@@ -53,8 +61,8 @@ export default function GalleryContent() {
 
   const items =
     active === "All"
-      ? galleryItems
-      : galleryItems.filter((item) => item.filter === active);
+      ? itemsAll
+      : itemsAll.filter((item) => item.filter === active);
 
   return (
     <section className="pb-16 lg:pb-24">
@@ -85,10 +93,9 @@ export default function GalleryContent() {
         {/* Mosaic grid */}
         <div className="grid grid-cols-2 gap-4 sm:gap-5 auto-rows-[150px] sm:auto-rows-[190px] lg:auto-rows-[215px] [grid-auto-flow:dense]">
           {items.map((item, i) => {
-            // Repeating mosaic: big-left + stacked-right, then stacked-left + big-right, then full-width.
             const pos = i % 7;
-            const isTall = pos === 0 || pos === 4;
-            const isWide = pos === 6;
+            const isTall = Boolean(item.tall) || pos === 0 || pos === 4;
+            const isWide = Boolean(item.wide) || pos === 6;
 
             // Tall images pan across full width; small + wide (last) images pan full height.
             const panClass = isTall
@@ -97,7 +104,7 @@ export default function GalleryContent() {
 
             return (
               <article
-                key={item.id}
+                key={String(item.id)}
                 className={`group relative overflow-hidden rounded-[1.25rem] sm:rounded-[1.5rem] ${
                   isTall ? "row-span-2" : ""
                 } ${isWide ? "col-span-2 row-span-2" : ""}`}
@@ -108,6 +115,10 @@ export default function GalleryContent() {
                   fill
                   className={`object-cover transition-[object-position] duration-[3500ms] ease-linear ${panClass}`}
                   sizes={isWide ? "100vw" : "(max-width: 1024px) 50vw, 45vw"}
+                  unoptimized={
+                    item.image.startsWith("/uploads") ||
+                    item.image.startsWith("http")
+                  }
                 />
               </article>
             );

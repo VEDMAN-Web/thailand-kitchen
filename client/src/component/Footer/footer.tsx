@@ -10,6 +10,7 @@ import {
   type SocialIconName,
 } from "./footerData";
 import { useTranslation } from "../../i18n/LanguageProvider";
+import { useCmsSection } from "../../lib/CmsHomeContext";
 
 function SocialIcon({ name }: { name: SocialIconName }) {
   const common = {
@@ -84,6 +85,42 @@ function scrollToFooterTarget(href: string) {
 export default function Footer() {
   const { t } = useTranslation();
   const router = useRouter();
+  const footerCms = useCmsSection<{
+    address?: string;
+    email?: string;
+    phone?: string;
+    facebook?: string;
+    instagram?: string;
+    line?: string;
+  }>("footer");
+
+  const contactItems = [
+    {
+      icon: "/footer/location.png",
+      text: footerCms?.address || contactInfo[0].text,
+    },
+    {
+      icon: "/footer/email.png",
+      text: footerCms?.email || contactInfo[1].text,
+    },
+    {
+      icon: "/footer/calling.png",
+      text: footerCms?.phone || contactInfo[2].text,
+    },
+  ];
+
+  const cmsSocials = socialLinks.map((s) => {
+    if (s.name === "facebook" && footerCms?.facebook) {
+      return { ...s, link: footerCms.facebook };
+    }
+    if (s.name === "instagram" && footerCms?.instagram) {
+      return { ...s, link: footerCms.instagram };
+    }
+    if (s.name === "whatsapp" && footerCms?.line) {
+      return { ...s, link: footerCms.line };
+    }
+    return s;
+  });
 
   const handleFooterNav = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -122,7 +159,7 @@ export default function Footer() {
             </p>
 
             <div className="flex gap-3 mt-8">
-              {socialLinks.map((item) => (
+              {cmsSocials.map((item) => (
                 <a
                   href={item.link}
                   key={item.name}
@@ -184,7 +221,7 @@ export default function Footer() {
               {t("footer.section.getInTouch")}
             </h3>
             <div className="space-y-5">
-              {contactInfo.map((item, index) => (
+              {contactItems.map((item, index) => (
                 <div key={index} className="flex gap-3 items-start">
                   <div className="w-9 h-9 rounded-full border border-[#B38B6D]/50 flex items-center justify-center shrink-0">
                     <Image src={item.icon} alt="" width={16} height={16} />

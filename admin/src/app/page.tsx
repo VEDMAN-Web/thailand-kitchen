@@ -16,9 +16,11 @@ import {
   Globe2,
   HelpCircle,
   Contact,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import AdminShell from "@/components/AdminShell";
+import MediaUpload from "@/components/MediaUpload";
 import { useAdminAuth } from "@/lib/AdminAuthContext";
 import { getHome, resetHome, updateHome } from "@/services/adminAPI";
 import { clsx } from "clsx";
@@ -130,25 +132,31 @@ function isSectionComplete(key: string, sections: Sections): boolean {
   if (!s) return false;
   switch (key) {
     case "hero":
-      return Boolean(s.title && s.subtitle && s.buttonText);
+      return Boolean(s.title && (s.subtitle || s.description) && (s.buttonText || s.cta));
     case "statistics":
       return Array.isArray(s.items) && s.items.length >= 1;
     case "advantages":
       return Array.isArray(s.items) && s.items.length >= 1;
     case "story":
-      return Boolean(s.title && s.description);
+      return Boolean(s.title && (s.description || s.text));
     case "transition":
-      return Array.isArray(s.pillars) && s.pillars.length >= 1;
+      return (
+        (Array.isArray(s.pillars) && s.pillars.length >= 1) ||
+        (Array.isArray(s.items) && s.items.length >= 1)
+      );
     case "testimonials":
       return Array.isArray(s.items) && s.items.length >= 1;
     case "catalogue":
       return Array.isArray(s.items) && s.items.length >= 1;
     case "partners":
-      return Array.isArray(s.logos) && s.logos.length >= 1;
+      return (
+        (Array.isArray(s.logos) && s.logos.length >= 1) ||
+        (Array.isArray(s.items) && s.items.length >= 1)
+      );
     case "faq":
       return Array.isArray(s.items) && s.items.length >= 1;
     case "footer":
-      return Boolean(s.email || s.address);
+      return Boolean(s.email || s.address || s.phone);
     default:
       return true;
   }
@@ -349,6 +357,19 @@ export default function AdminHomePage() {
   );
 }
 
+function AddItemButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#CBD5E1] px-3 py-2 text-xs font-semibold text-[#1A2332] hover:bg-[#F8FAFC]"
+    >
+      <Plus className="w-3.5 h-3.5" />
+      {label}
+    </button>
+  );
+}
+
 function SectionEditor({
   sectionKey,
   data,
@@ -382,6 +403,17 @@ function SectionEditor({
           value={data.buttonText || ""}
           onChange={(v) => onChange({ ...data, buttonText: v })}
         />
+        <MediaUpload
+          label="Hero Image"
+          kind="image"
+          value={data.image || ""}
+          onChange={(v) => onChange({ ...data, image: v })}
+        />
+        <Field
+          label="Video URL (optional)"
+          value={data.videoUrl || ""}
+          onChange={(v) => onChange({ ...data, videoUrl: v })}
+        />
       </div>
     );
   }
@@ -413,17 +445,40 @@ function SectionEditor({
                 onChange({ ...data, items: next });
               }}
             />
-            <Field
-              label="Suffix"
-              value={item.suffix || ""}
-              onChange={(v) => {
-                const next = [...items];
-                next[i] = { ...item, suffix: v };
-                onChange({ ...data, items: next });
-              }}
-            />
+            <div className="space-y-2">
+              <Field
+                label="Suffix"
+                value={item.suffix || ""}
+                onChange={(v) => {
+                  const next = [...items];
+                  next[i] = { ...item, suffix: v };
+                  onChange({ ...data, items: next });
+                }}
+              />
+              <button
+                type="button"
+                className="text-xs text-red-600"
+                onClick={() =>
+                  onChange({
+                    ...data,
+                    items: items.filter((_: any, idx: number) => idx !== i),
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
           </div>
         ))}
+        <AddItemButton
+          label="Add statistic"
+          onClick={() =>
+            onChange({
+              ...data,
+              items: [...items, { label: "", value: "", suffix: "" }],
+            })
+          }
+        />
       </div>
     );
   }
@@ -434,13 +489,27 @@ function SectionEditor({
       <div className="space-y-4">
         {items.map((item: any, i: number) => (
           <div key={i} className="rounded-xl border border-[#E8EAED] p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-full bg-[#1A2332] text-white text-xs font-bold flex items-center justify-center">
-                {i + 1}
-              </span>
-              <span className="text-xs font-bold uppercase tracking-wide text-[#5C6370]">
-                Advantage #{i + 1}
-              </span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-[#1A2332] text-white text-xs font-bold flex items-center justify-center">
+                  {i + 1}
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wide text-[#5C6370]">
+                  Advantage #{i + 1}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="text-xs text-red-600"
+                onClick={() =>
+                  onChange({
+                    ...data,
+                    items: items.filter((_: any, idx: number) => idx !== i),
+                  })
+                }
+              >
+                Remove
+              </button>
             </div>
             <Field
               label="Title"
@@ -461,8 +530,27 @@ function SectionEditor({
                 onChange({ ...data, items: next });
               }}
             />
+            <MediaUpload
+              label="Icon"
+              kind="icon"
+              value={item.icon || ""}
+              onChange={(v) => {
+                const next = [...items];
+                next[i] = { ...item, icon: v };
+                onChange({ ...data, items: next });
+              }}
+            />
           </div>
         ))}
+        <AddItemButton
+          label="Add advantage"
+          onClick={() =>
+            onChange({
+              ...data,
+              items: [...items, { title: "", description: "", icon: "" }],
+            })
+          }
+        />
       </div>
     );
   }
@@ -486,6 +574,12 @@ function SectionEditor({
           value={data.description || ""}
           onChange={(v) => onChange({ ...data, description: v })}
         />
+        <MediaUpload
+          label="Story Image"
+          kind="image"
+          value={data.image || ""}
+          onChange={(v) => onChange({ ...data, image: v })}
+        />
       </div>
     );
   }
@@ -493,38 +587,73 @@ function SectionEditor({
   if (sectionKey === "transition") {
     const pillars = data.pillars || [];
     return (
-      <div className="grid sm:grid-cols-2 gap-4">
-        {pillars.map((item: any, i: number) => (
-          <div key={i} className="rounded-xl border border-[#E8EAED] p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-full bg-[#1A2332] text-white text-xs font-bold flex items-center justify-center">
-                {i + 1}
-              </span>
-              <span className="text-xs font-bold uppercase tracking-wide text-[#5C6370]">
-                Pillar #{i + 1}
-              </span>
+      <div className="space-y-4">
+        <div className="grid sm:grid-cols-2 gap-4">
+          {pillars.map((item: any, i: number) => (
+            <div key={i} className="rounded-xl border border-[#E8EAED] p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-[#1A2332] text-white text-xs font-bold flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wide text-[#5C6370]">
+                    Pillar #{i + 1}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs text-red-600"
+                  onClick={() =>
+                    onChange({
+                      ...data,
+                      pillars: pillars.filter((_: any, idx: number) => idx !== i),
+                    })
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+              <Field
+                label="Pillar Title"
+                value={item.title || ""}
+                onChange={(v) => {
+                  const next = [...pillars];
+                  next[i] = { ...item, title: v };
+                  onChange({ ...data, pillars: next });
+                }}
+              />
+              <Field
+                label="Pillar Description"
+                multiline
+                value={item.description || ""}
+                onChange={(v) => {
+                  const next = [...pillars];
+                  next[i] = { ...item, description: v };
+                  onChange({ ...data, pillars: next });
+                }}
+              />
+              <MediaUpload
+                label="Icon"
+                kind="icon"
+                value={item.icon || ""}
+                onChange={(v) => {
+                  const next = [...pillars];
+                  next[i] = { ...item, icon: v };
+                  onChange({ ...data, pillars: next });
+                }}
+              />
             </div>
-            <Field
-              label="Pillar Title"
-              value={item.title || ""}
-              onChange={(v) => {
-                const next = [...pillars];
-                next[i] = { ...item, title: v };
-                onChange({ ...data, pillars: next });
-              }}
-            />
-            <Field
-              label="Pillar Description"
-              multiline
-              value={item.description || ""}
-              onChange={(v) => {
-                const next = [...pillars];
-                next[i] = { ...item, description: v };
-                onChange({ ...data, pillars: next });
-              }}
-            />
-          </div>
-        ))}
+          ))}
+        </div>
+        <AddItemButton
+          label="Add pillar"
+          onClick={() =>
+            onChange({
+              ...data,
+              pillars: [...pillars, { title: "", description: "", icon: "" }],
+            })
+          }
+        />
       </div>
     );
   }
@@ -535,6 +664,20 @@ function SectionEditor({
       <div className="space-y-4">
         {items.map((item: any, i: number) => (
           <div key={i} className="rounded-xl border border-[#E8EAED] p-4 space-y-3">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="text-xs text-red-600"
+                onClick={() =>
+                  onChange({
+                    ...data,
+                    items: items.filter((_: any, idx: number) => idx !== i),
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
             <Field
               label="Name"
               value={item.name || ""}
@@ -563,8 +706,39 @@ function SectionEditor({
                 onChange({ ...data, items: next });
               }}
             />
+            <MediaUpload
+              label="Photo"
+              kind="image"
+              value={item.image || ""}
+              onChange={(v) => {
+                const next = [...items];
+                next[i] = { ...item, image: v };
+                onChange({ ...data, items: next });
+              }}
+            />
+            <Field
+              label="Rating (1-5)"
+              value={String(item.rating ?? 5)}
+              onChange={(v) => {
+                const next = [...items];
+                next[i] = { ...item, rating: Number(v) || 5 };
+                onChange({ ...data, items: next });
+              }}
+            />
           </div>
         ))}
+        <AddItemButton
+          label="Add testimonial"
+          onClick={() =>
+            onChange({
+              ...data,
+              items: [
+                ...items,
+                { name: "", role: "", quote: "", image: "", rating: 5 },
+              ],
+            })
+          }
+        />
       </div>
     );
   }
@@ -574,27 +748,105 @@ function SectionEditor({
     return (
       <div className="space-y-4">
         {items.map((item: any, i: number) => (
-          <div key={i} className="rounded-xl border border-[#E8EAED] p-4 grid sm:grid-cols-2 gap-3">
-            <Field
-              label={`Catalogue #${i + 1} Title`}
-              value={item.title || ""}
+          <div key={i} className="rounded-xl border border-[#E8EAED] p-4 space-y-3">
+            <div className="flex justify-between">
+              <span className="text-xs font-bold uppercase text-[#5C6370]">
+                Catalogue #{i + 1}
+              </span>
+              <button
+                type="button"
+                className="text-xs text-red-600"
+                onClick={() =>
+                  onChange({
+                    ...data,
+                    items: items.filter((_: any, idx: number) => idx !== i),
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field
+                label="Title"
+                value={item.title || ""}
+                onChange={(v) => {
+                  const next = [...items];
+                  next[i] = { ...item, title: v };
+                  onChange({ ...data, items: next });
+                }}
+              />
+              <Field
+                label="Category"
+                value={item.category || ""}
+                onChange={(v) => {
+                  const next = [...items];
+                  next[i] = { ...item, category: v };
+                  onChange({ ...data, items: next });
+                }}
+              />
+            </div>
+            <MediaUpload
+              label="Cover Image"
+              kind="image"
+              value={item.image || ""}
               onChange={(v) => {
                 const next = [...items];
-                next[i] = { ...item, title: v };
+                next[i] = { ...item, image: v };
                 onChange({ ...data, items: next });
               }}
             />
-            <Field
-              label="File Name"
-              value={item.fileName || ""}
+            <MediaUpload
+              label="PDF File"
+              kind="pdf"
+              value={item.pdfUrl || ""}
               onChange={(v) => {
                 const next = [...items];
-                next[i] = { ...item, fileName: v };
+                next[i] = { ...item, pdfUrl: v };
                 onChange({ ...data, items: next });
               }}
             />
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field
+                label="Legacy file name (optional)"
+                value={item.fileName || ""}
+                onChange={(v) => {
+                  const next = [...items];
+                  next[i] = { ...item, fileName: v };
+                  onChange({ ...data, items: next });
+                }}
+              />
+              <Field
+                label="Download name"
+                value={item.downloadName || ""}
+                onChange={(v) => {
+                  const next = [...items];
+                  next[i] = { ...item, downloadName: v };
+                  onChange({ ...data, items: next });
+                }}
+              />
+            </div>
           </div>
         ))}
+        <AddItemButton
+          label="Add catalogue"
+          onClick={() =>
+            onChange({
+              ...data,
+              items: [
+                ...items,
+                {
+                  title: "",
+                  category: "",
+                  image: "",
+                  pdfUrl: "",
+                  fileName: "",
+                  downloadName: "",
+                },
+              ],
+            })
+          }
+        />
       </div>
     );
   }
@@ -604,7 +856,21 @@ function SectionEditor({
     return (
       <div className="space-y-4">
         {logos.map((item: any, i: number) => (
-          <div key={i} className="rounded-xl border border-[#E8EAED] p-4 grid sm:grid-cols-2 gap-3">
+          <div key={i} className="rounded-xl border border-[#E8EAED] p-4 space-y-3">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="text-xs text-red-600"
+                onClick={() =>
+                  onChange({
+                    ...data,
+                    logos: logos.filter((_: any, idx: number) => idx !== i),
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
             <Field
               label={`Partner #${i + 1} Name`}
               value={item.name || ""}
@@ -614,8 +880,9 @@ function SectionEditor({
                 onChange({ ...data, logos: next });
               }}
             />
-            <Field
-              label="Image Path"
+            <MediaUpload
+              label="Logo"
+              kind="image"
               value={item.image || ""}
               onChange={(v) => {
                 const next = [...logos];
@@ -625,6 +892,15 @@ function SectionEditor({
             />
           </div>
         ))}
+        <AddItemButton
+          label="Add partner"
+          onClick={() =>
+            onChange({
+              ...data,
+              logos: [...logos, { name: "", image: "" }],
+            })
+          }
+        />
       </div>
     );
   }
@@ -635,6 +911,20 @@ function SectionEditor({
       <div className="space-y-4">
         {items.map((item: any, i: number) => (
           <div key={i} className="rounded-xl border border-[#E8EAED] p-4 space-y-3">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="text-xs text-red-600"
+                onClick={() =>
+                  onChange({
+                    ...data,
+                    items: items.filter((_: any, idx: number) => idx !== i),
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
             <Field
               label={`Question #${i + 1}`}
               value={item.question || ""}
@@ -656,6 +946,15 @@ function SectionEditor({
             />
           </div>
         ))}
+        <AddItemButton
+          label="Add FAQ"
+          onClick={() =>
+            onChange({
+              ...data,
+              items: [...items, { question: "", answer: "" }],
+            })
+          }
+        />
       </div>
     );
   }

@@ -2,8 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
+const { UPLOAD_ROOT, ensureUploadDirs } = require("./config/upload");
 
 const app = express();
+ensureUploadDirs();
 
 function parseOrigins(value) {
   if (!value) return [];
@@ -48,6 +50,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(morgan("dev"));
 
+// Public uploaded media (images, icons, PDFs)
+app.use("/uploads", express.static(UPLOAD_ROOT));
+
 app.get("/api/health", (_req, res) => {
   res.json({ success: true, message: "API OK" });
 });
@@ -55,11 +60,13 @@ app.get("/api/health", (_req, res) => {
 const contactRouter = require("./router/contactRouter");
 const authRouter = require("./router/authRouter");
 const cmsRouter = require("./router/cmsRouter");
+const uploadRouter = require("./router/uploadRouter");
 const errorHandler = require("./middleware/errorMiddleware");
 
 app.use("/api/contact", contactRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/cms", cmsRouter);
+app.use("/api/upload", uploadRouter);
 
 app.use(errorHandler);
 

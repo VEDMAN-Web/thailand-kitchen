@@ -13,10 +13,17 @@ import CatalogSection from "./catlog/CatlogSection";
 import ContactSection from "./contactUs/ContactSection";
 import Footer from "./Footer/footer";
 import { useTranslation } from "../i18n/LanguageProvider";
+import { useCmsSection } from "../lib/CmsHomeContext";
 
 function HomePage() {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hero = useCmsSection<{
+    subtitle?: string;
+    title?: string;
+    description?: string;
+    buttonText?: string;
+  }>("hero");
 
   useEffect(() => {
     const video = videoRef.current;
@@ -33,7 +40,6 @@ function HomePage() {
 
   return (
     <div className="w-full relative bg-[#F5F3EF]">
-      {/* Hero stays clipped; stats sit outside overflow-hidden so count-up can detect visibility */}
       <div className="relative overflow-hidden">
         <section className="bg-[#F5F3EF] px-3 pb-3 pt-[80px] sm:px-4 sm:pb-4 sm:pt-[84px]">
           <div className="relative w-full h-[calc(100vh-1.5rem)] sm:h-[calc(100vh-2rem)] overflow-hidden rounded-[1.5rem] sm:rounded-[2rem]">
@@ -57,22 +63,22 @@ function HomePage() {
               <div className="max-w-[1440px] mx-auto h-full px-6 sm:px-8 lg:px-12">
                 <div className="absolute bottom-14 lg:bottom-20 left-6 sm:left-8 lg:left-12 right-6 sm:right-8 lg:right-12 max-w-4xl">
                   <p className="uppercase tracking-[0.28em] text-[#C4A484] text-xs sm:text-sm font-medium mb-4">
-                    {t("home.hero.eyebrow")}
+                    {hero?.subtitle || t("home.hero.eyebrow")}
                   </p>
 
                   <h1 className="text-white font-extrabold leading-tight text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wide uppercase whitespace-nowrap">
-                    {t("home.hero.title")}
+                    {hero?.title || t("home.hero.title")}
                   </h1>
 
                   <p className="mt-5 max-w-lg text-white/85 text-sm sm:text-base leading-7">
-                    {t("home.hero.description")}
+                    {hero?.description || t("home.hero.description")}
                   </p>
 
                   <Link
                     href="/contact"
                     className="mt-8 inline-flex items-center gap-2 bg-white text-[#1A1A1A] px-7 py-3.5 rounded-full text-sm font-semibold hover:bg-gray-100 transition"
                   >
-                    {t("home.hero.cta")}
+                    {hero?.buttonText || t("home.hero.cta")}
                     <span aria-hidden>↗</span>
                   </Link>
                 </div>

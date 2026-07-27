@@ -70,6 +70,7 @@ export type CategoryItem = {
   title: string;
   description: string;
   image: string;
+  icon?: string;
 };
 
 export async function listCategories(siteId: SiteId) {
@@ -105,6 +106,9 @@ export type ProductItem = {
   slug: string;
   description: string;
   image: string;
+  icon?: string;
+  gallery?: string[];
+  pdfUrl?: string;
   category: string;
   featured: boolean;
 };
@@ -140,6 +144,8 @@ export type BlogItem = {
   excerpt: string;
   content: string;
   image: string;
+  gallery?: string[];
+  category?: string;
   published: boolean;
 };
 
@@ -223,6 +229,141 @@ export async function listContacts() {
 
 export async function deleteContact(id: string) {
   const { data } = await adminApi.delete(`/contact/delete/${id}`);
+  return data;
+}
+
+/** Upload image, icon, or PDF for CMS fields */
+export async function uploadMedia(file: File, kind: "image" | "icon" | "pdf" | "any" = "image") {
+  const form = new FormData();
+  form.append("kind", kind);
+  form.append("file", file);
+  const { data } = await adminApi.post("/upload", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 60000,
+    transformRequest: [
+      (body, headers) => {
+        if (headers && body instanceof FormData) {
+          delete headers["Content-Type"];
+        }
+        return body;
+      },
+    ],
+  });
+  return data as {
+    success: boolean;
+    file: {
+      url: string;
+      publicId?: string;
+      storage: string;
+      kind: string;
+      originalName: string;
+    };
+  };
+}
+
+export type GalleryCmsItem = {
+  _id: string;
+  title: string;
+  image: string;
+  filter: string;
+  tall?: boolean;
+  wide?: boolean;
+  sortOrder?: number;
+};
+
+export async function listGallery(siteId: SiteId) {
+  const { data } = await adminApi.get(`/cms/${siteId}/gallery`);
+  return data as { success: boolean; items: GalleryCmsItem[] };
+}
+
+export async function createGalleryItem(
+  siteId: SiteId,
+  body: Partial<GalleryCmsItem>
+) {
+  const { data } = await adminApi.post(`/cms/${siteId}/gallery`, body);
+  return data;
+}
+
+export async function updateGalleryItem(
+  siteId: SiteId,
+  id: string,
+  body: Partial<GalleryCmsItem>
+) {
+  const { data } = await adminApi.put(`/cms/${siteId}/gallery/${id}`, body);
+  return data;
+}
+
+export async function deleteGalleryItem(siteId: SiteId, id: string) {
+  const { data } = await adminApi.delete(`/cms/${siteId}/gallery/${id}`);
+  return data;
+}
+
+export type CatalogueCmsItem = {
+  _id: string;
+  title: string;
+  category: string;
+  image: string;
+  pdfUrl: string;
+  fileName: string;
+  downloadName: string;
+  sortOrder?: number;
+};
+
+export async function listCatalogues(siteId: SiteId) {
+  const { data } = await adminApi.get(`/cms/${siteId}/catalogues`);
+  return data as { success: boolean; items: CatalogueCmsItem[] };
+}
+
+export async function createCatalogue(
+  siteId: SiteId,
+  body: Partial<CatalogueCmsItem>
+) {
+  const { data } = await adminApi.post(`/cms/${siteId}/catalogues`, body);
+  return data;
+}
+
+export async function updateCatalogue(
+  siteId: SiteId,
+  id: string,
+  body: Partial<CatalogueCmsItem>
+) {
+  const { data } = await adminApi.put(`/cms/${siteId}/catalogues/${id}`, body);
+  return data;
+}
+
+export async function deleteCatalogue(siteId: SiteId, id: string) {
+  const { data } = await adminApi.delete(`/cms/${siteId}/catalogues/${id}`);
+  return data;
+}
+
+export type FaqCmsItem = {
+  _id: string;
+  question: string;
+  answer: string;
+  sortOrder?: number;
+};
+
+export async function listFaqs(siteId: SiteId) {
+  const { data } = await adminApi.get(`/cms/${siteId}/faqs`);
+  return data as { success: boolean; items: FaqCmsItem[] };
+}
+
+export async function createFaq(siteId: SiteId, body: Partial<FaqCmsItem>) {
+  const { data } = await adminApi.post(`/cms/${siteId}/faqs`, body);
+  return data;
+}
+
+export async function updateFaq(
+  siteId: SiteId,
+  id: string,
+  body: Partial<FaqCmsItem>
+) {
+  const { data } = await adminApi.put(`/cms/${siteId}/faqs/${id}`, body);
+  return data;
+}
+
+export async function deleteFaq(siteId: SiteId, id: string) {
+  const { data } = await adminApi.delete(`/cms/${siteId}/faqs/${id}`);
   return data;
 }
 

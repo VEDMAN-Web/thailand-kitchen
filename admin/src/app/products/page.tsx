@@ -12,12 +12,16 @@ import {
   updateProduct,
   type ProductItem,
 } from "@/services/adminAPI";
+import MediaUpload from "@/components/MediaUpload";
 
 const empty = {
   title: "",
   slug: "",
   description: "",
   image: "/products/Kitchen2.png",
+  icon: "",
+  gallery: "",
+  pdfUrl: "",
   category: "",
   featured: false,
 };
@@ -59,6 +63,9 @@ export default function AdminProductsPage() {
       slug: item.slug,
       description: item.description,
       image: item.image,
+      icon: item.icon || "",
+      gallery: (item.gallery || []).join(", "),
+      pdfUrl: item.pdfUrl || "",
       category: item.category,
       featured: item.featured,
     });
@@ -67,12 +74,26 @@ export default function AdminProductsPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const payload = {
+      title: form.title,
+      slug: form.slug,
+      description: form.description,
+      image: form.image,
+      icon: form.icon,
+      gallery: form.gallery
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      pdfUrl: form.pdfUrl,
+      category: form.category,
+      featured: form.featured,
+    };
     try {
       if (modal === "create") {
-        await createProduct(siteId, form);
+        await createProduct(siteId, payload);
         toast.success("Product created");
       } else if (editing) {
-        await updateProduct(siteId, editing._id, form);
+        await updateProduct(siteId, editing._id, payload);
         toast.success("Product updated");
       }
       setModal(null);
@@ -186,7 +207,6 @@ export default function AdminProductsPage() {
                 ["title", "Title"],
                 ["slug", "Slug (optional)"],
                 ["category", "Category"],
-                ["image", "Image path"],
               ] as const
             ).map(([key, label]) => (
               <label key={key} className="block text-xs font-semibold text-[#5C6370]">
@@ -199,6 +219,32 @@ export default function AdminProductsPage() {
                 />
               </label>
             ))}
+            <MediaUpload
+              label="Main Image"
+              kind="image"
+              value={form.image}
+              onChange={(v) => setForm({ ...form, image: v })}
+            />
+            <MediaUpload
+              label="Icon (optional)"
+              kind="icon"
+              value={form.icon}
+              onChange={(v) => setForm({ ...form, icon: v })}
+            />
+            <label className="block text-xs font-semibold text-[#5C6370]">
+              Gallery URLs (comma-separated)
+              <input
+                value={form.gallery}
+                onChange={(e) => setForm({ ...form, gallery: e.target.value })}
+                className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
+              />
+            </label>
+            <MediaUpload
+              label="Product PDF (optional)"
+              kind="pdf"
+              value={form.pdfUrl}
+              onChange={(v) => setForm({ ...form, pdfUrl: v })}
+            />
             <label className="block text-xs font-semibold text-[#5C6370]">
               Description
               <textarea

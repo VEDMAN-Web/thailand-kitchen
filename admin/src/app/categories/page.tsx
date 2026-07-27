@@ -12,6 +12,7 @@ import {
   updateCategory,
   type CategoryItem,
 } from "@/services/adminAPI";
+import MediaUpload from "@/components/MediaUpload";
 
 export default function AdminCategoriesPage() {
   const { siteId } = useAdminAuth();
@@ -200,14 +201,12 @@ export default function AdminCategoriesPage() {
                 className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm"
               />
             </label>
-            <label className="block text-xs font-semibold text-[#5C6370] mb-1">
-              Image URL / path
-              <input
-                value={form.image}
-                onChange={(e) => setForm({ ...form, image: e.target.value })}
-                className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm"
-              />
-            </label>
+            <MediaUpload
+              label="Image"
+              kind="image"
+              value={form.image}
+              onChange={(v) => setForm({ ...form, image: v })}
+            />
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"

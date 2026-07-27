@@ -7,6 +7,10 @@ import { toast } from "sonner";
 import { products } from "./catlogData";
 import { useTranslation } from "../../i18n/LanguageProvider";
 import { createContact } from "../../services/contactAPI";
+import {
+  fetchMergedCatalogues,
+  type CmsCatalogue,
+} from "../../services/cmsPublic";
 import type { ContactData } from "../../types/contactUs";
 
 type PendingDownload = {
@@ -14,6 +18,7 @@ type PendingDownload = {
   category: string;
   downloadName: string;
   pdfFile: string;
+  pdfUrl?: string;
 };
 
 type GateForm = {
@@ -55,7 +60,10 @@ function validateGateForm(data: GateForm): GateErrors {
 
 export default function CatlogSection() {
   const { t } = useTranslation();
-  const items = products.slice(0, 3);
+  const [catalogItems, setCatalogItems] = useState<CmsCatalogue[]>(
+    products.slice(0, 3).map((p) => ({ ...p, pdfUrl: "" }))
+  );
+  const items = catalogItems.slice(0, 3);
   const [active, setActive] = useState<number | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const [showFormPopup, setShowFormPopup] = useState(false);
@@ -65,6 +73,12 @@ export default function CatlogSection() {
   const [gateErrors, setGateErrors] = useState<GateErrors>({});
   const pendingDownloadRef = useRef<PendingDownload | null>(null);
   const unlockedRef = useRef(false);
+
+  useEffect(() => {
+    fetchMergedCatalogues().then((list) => {
+      if (list?.length) setCatalogItems(list);
+    });
+  }, []);
 
   const refreshUnlockStatus = useCallback(async () => {
     try {
@@ -99,10 +113,11 @@ export default function CatlogSection() {
       category: string,
       downloadName: string,
       pdfFile: string,
-      skipLockCheck = false
+      skipLockCheck = false,
+      pdfUrl = ""
     ) => {
       if (!skipLockCheck && !unlockedRef.current) {
-        pendingDownloadRef.current = { id, category, downloadName, pdfFile };
+        pendingDownloadRef.current = { id, category, downloadName, pdfFile, pdfUrl };
         setShowFormPopup(true);
         return;
       }
@@ -111,22 +126,32 @@ export default function CatlogSection() {
       try {
         const isUnlocked = skipLockCheck || (await refreshUnlockStatus());
         if (!isUnlocked) {
-          pendingDownloadRef.current = { id, category, downloadName, pdfFile };
+          pendingDownloadRef.current = { id, category, downloadName, pdfFile, pdfUrl };
           setShowFormPopup(true);
           return;
         }
 
-        const staticPdfUrl = `/catlog/${pdfFile}`;
-        const res = await fetch(staticPdfUrl, { cache: "no-store" });
+        const sourceUrl =
+          pdfUrl && (pdfUrl.startsWith("http") || pdfUrl.startsWith("/uploads"))
+            ? pdfUrl
+            : pdfFile
+              ? `/catlog/${pdfFile}`
+              : "";
+
+        if (!sourceUrl) {
+          throw new Error("No catalogue PDF configured in admin.");
+        }
+
+        const res = await fetch(sourceUrl, { cache: "no-store" });
 
         if (!res.ok) {
           throw new Error(
-            "Catalogue PDF not found. Add catalogue.pdf to client/public/catlog/ folder."
+            "Catalogue PDF not found. Upload a PDF in the admin catalogue section."
           );
         }
 
         const blob = await res.blob();
-        if (!blob.type.includes("pdf") && blob.size < 500) {
+        if (blob.size < 500) {
           throw new Error(t("home.catalog.downloadErrorDesc"));
         }
 
@@ -234,7 +259,8 @@ export default function CatlogSection() {
           pending.category,
           pending.downloadName,
           pending.pdfFile,
-          true
+          true,
+          pending.pdfUrl || ""
         );
       }
     } catch (err: unknown) {
@@ -284,6 +310,10 @@ export default function CatlogSection() {
                           : "scale-100"
                       }`}
                       sizes="(max-width: 640px) 100vw, 50vw"
+                      unoptimized={
+                        item.image.startsWith("/uploads") ||
+                        item.image.startsWith("http")
+                      }
                     />
 
                     <button
@@ -296,7 +326,9 @@ export default function CatlogSection() {
                           item.id,
                           item.category,
                           item.downloadName,
-                          item.pdf
+                          item.pdf,
+                          false,
+                          item.pdfUrl || ""
                         );
                       }}
                       className={`absolute inset-0 z-10 grid place-items-center bg-[#1A1A1A]/55 transition-opacity duration-500 cursor-pointer border-0 p-0 ${

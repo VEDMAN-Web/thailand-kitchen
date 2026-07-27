@@ -4,9 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "../../i18n/LanguageProvider";
+import { useCmsSection } from "../../lib/CmsHomeContext";
 
 export default function AboutSection() {
   const { t } = useTranslation();
+  const story = useCmsSection<{
+    title?: string;
+    subtitle?: string;
+    description?: string;
+  }>("story");
   const imageRef = useRef<HTMLDivElement>(null);
   const [imageVisible, setImageVisible] = useState(false);
 
@@ -32,10 +38,10 @@ export default function AboutSection() {
       <section id="our-service" className="bg-[#F5F3EF] pb-16 lg:pb-24">
       <div className="max-w-7xl mx-auto px-6">
         <p className="text-[#E0905A] text-xs tracking-[0.28em] uppercase font-medium mb-3">
-          {t("home.about.eyebrow")}
+          {story?.subtitle || t("home.about.eyebrow")}
         </p>
         <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1A1A1A] mb-10 lg:mb-12">
-          {t("home.about.title")}
+          {story?.title || t("home.about.title")}
         </h2>
 
         <div className="relative">
@@ -59,10 +65,10 @@ export default function AboutSection() {
 
           <div className="group relative md:absolute md:left-8 lg:left-12 md:top-1/2 md:-translate-y-1/2 md:w-[min(440px,46%)] mt-6 md:mt-0 bg-white rounded-2xl p-7 sm:p-9 shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition-all duration-500 ease-out hover:bg-[#1A1A1A] hover:shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
             <h3 className="text-xl sm:text-2xl font-semibold text-[#1A1A1A] leading-snug transition-colors duration-500 group-hover:text-white">
-              {t("home.about.cardTitle")}
+              {story?.title || t("home.about.cardTitle")}
             </h3>
             <p className="mt-4 text-[#6B6B6B] text-sm sm:text-[15px] leading-7 transition-colors duration-500 group-hover:text-white/75">
-              {t("home.about.cardDescription")}
+              {story?.description || t("home.about.cardDescription")}
             </p>
             <Link
               href="/contact"
