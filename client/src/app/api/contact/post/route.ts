@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       updatedAt: now,
     };
 
-    const result = await db.collection("users").insertOne(doc);
+    const result = await db.collection("contacts").insertOne(doc);
 
     return NextResponse.json(
       {

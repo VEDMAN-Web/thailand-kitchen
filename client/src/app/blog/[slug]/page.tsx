@@ -1,18 +1,23 @@
 import { notFound } from "next/navigation";
 import BlogDetailView from "../../../component/blog/BlogDetailView";
-import { blogPosts, getBlogBySlug } from "../../../component/blog/blogData";
+import { blogPosts } from "../../../component/blog/blogData";
+import {
+  fetchBlogBySlug,
+  fetchMergedBlogs,
+} from "../../../services/cmsPublic";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
+export async function generateStaticParams() {
+  const posts = await fetchMergedBlogs().catch(() => blogPosts);
+  return posts.map((post) => ({ slug: post.slug }));
 }
 
 export default async function Page({ params }: Props) {
   const { slug } = await params;
-  const post = getBlogBySlug(slug);
+  const post = await fetchBlogBySlug(slug);
 
   if (!post) notFound();
 

@@ -1,20 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BlogFilters from "./BlogFilters";
 import BlogFeaturedCard from "./BlogFeaturedCard";
 import BlogCard from "./BlogCard";
-import { blogPosts, BlogCategory } from "./blogData";
+import { blogPosts, BlogCategory, type BlogPost } from "./blogData";
 import { useTranslation } from "../../i18n/LanguageProvider";
+import { fetchMergedBlogs } from "../../services/cmsPublic";
 
 export default function BlogListSection() {
   const { t } = useTranslation();
   const [active, setActive] = useState<BlogCategory>("All");
+  const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
+
+  useEffect(() => {
+    let alive = true;
+    fetchMergedBlogs().then((list) => {
+      if (alive) setPosts(list);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const filtered =
     active === "All"
-      ? blogPosts
-      : blogPosts.filter((post) => post.filter === active);
+      ? posts
+      : posts.filter((post) => post.filter === active || active === "All");
 
   const featured = filtered.filter((post) => post.featured);
   const gridPosts = filtered.filter((post) => !post.featured);

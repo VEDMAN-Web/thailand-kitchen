@@ -32,7 +32,10 @@ const createContact = asyncHandler(async (req, res) => {
 
 
 const getContacts = asyncHandler(async (req, res) => {
-  const contacts = await Contact.find().sort({ createdAt: -1 });
+  const contacts = await Contact.find({
+    fullName: { $exists: true, $ne: "" },
+    email: { $exists: true, $ne: "" },
+  }).sort({ createdAt: -1 });
 
   res.status(200).json({
     success: true,

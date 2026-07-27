@@ -12,7 +12,7 @@ interface Props {
 }
 
 const shareLinks = [
-  { icon: "/footer/facebook.png", label: "Facebook", href: "#" },
+  { icon: "/footer/facebook.png", label: "Facebook", href: "https://www.facebook.com/ThailandKitchens/" },
   { icon: "/footer/instagram.png", label: "Instagram", href: "#" },
   { icon: "/footer/x.png", label: "X", href: "#" },
   { icon: "/footer/whatsapp.png", label: "WhatsApp", href: "#" },

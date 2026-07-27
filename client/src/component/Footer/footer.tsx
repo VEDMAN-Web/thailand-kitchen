@@ -123,16 +123,22 @@ export default function Footer() {
 
             <div className="flex gap-3 mt-8">
               {socialLinks.map((item) => (
-                <Link
+                <a
                   href={item.link}
                   key={item.name}
                   aria-label={item.label}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full border border-[#B38B6D]/60 text-[#B38B6D] flex items-center justify-center bg-transparent hover:bg-[#F5F3EF] hover:border-[#F5F3EF] hover:text-[#1A1A1A] transition-colors duration-300"
                 >
                   <SocialIcon name={item.name} />
-                </Link>
+                </a>
               ))}
             </div>
+
+            <p className="mt-6 mb-0 text-white text-sm leading-6 max-w-xs">
+              Partnered with Livio.Dsign by Oppolia Home
+            </p>
           </div>
 
           <div>
@@ -192,7 +198,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="relative mt-16 pt-8 border-t border-white/10">
+        <div className="relative mt-10 pt-8 border-t border-white/10">
           <p className="pointer-events-none select-none absolute left-0 right-0 -top-6 text-center text-[12vw] leading-none font-semibold text-white/[0.04] tracking-tight whitespace-nowrap overflow-hidden">
             Thailand Kitchen
           </p>

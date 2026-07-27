@@ -1,21 +1,23 @@
 import { notFound } from "next/navigation";
 import ProductDetailView from "../../../component/products/ProductDetailView";
+import { productItems } from "../../../component/products/productData";
 import {
-  getProductBySlug,
-  productItems,
-} from "../../../component/products/productData";
+  fetchMergedProducts,
+  fetchProductBySlug,
+} from "../../../services/cmsPublic";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return productItems.map((item) => ({ slug: item.slug }));
+export async function generateStaticParams() {
+  const items = await fetchMergedProducts().catch(() => productItems);
+  return items.map((item) => ({ slug: item.slug }));
 }
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await fetchProductBySlug(slug);
 
   if (!product) notFound();
 
