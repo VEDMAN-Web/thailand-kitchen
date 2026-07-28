@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  FolderOpen,
   Package,
   FileText,
   Shield,
@@ -12,7 +11,6 @@ import {
   Users,
   LogOut,
   ChevronDown,
-  Inbox,
   Images,
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/AdminAuthContext";
@@ -21,8 +19,6 @@ import { clsx } from "clsx";
 
 const NAV = [
   { href: "/", label: "Home Page", icon: Home },
-  { href: "/contacts", label: "Contacts", icon: Inbox },
-  { href: "/categories", label: "Categories", icon: FolderOpen },
   { href: "/products", label: "Products", icon: Package },
   { href: "/gallery", label: "Gallery", icon: Images },
   { href: "/blogs", label: "Blogs", icon: FileText },

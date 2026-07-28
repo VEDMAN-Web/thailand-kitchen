@@ -231,6 +231,20 @@ export default function Footer() {
                   </p>
                 </div>
               ))}
+              <div className="pl-12 flex flex-row flex-wrap items-center gap-x-4 gap-y-1">
+                <Link
+                  href="/privacy"
+                  className="text-white/70 text-[11px] leading-4 hover:text-white transition"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/terms"
+                  className="text-white/70 text-[11px] leading-4 hover:text-white transition"
+                >
+                  Terms & Conditions
+                </Link>
+              </div>
             </div>
           </div>
         </div>

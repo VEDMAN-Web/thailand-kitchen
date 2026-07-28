@@ -97,10 +97,12 @@ export default function GalleryContent() {
             const isTall = Boolean(item.tall) || pos === 0 || pos === 4;
             const isWide = Boolean(item.wide) || pos === 6;
 
-            // Tall images pan across full width; small + wide (last) images pan full height.
-            const panClass = isTall
-              ? "object-left group-hover:object-right"
-              : "object-top group-hover:object-bottom";
+            // Scale + translate so pan always moves, even when image aspect
+            // matches the cell (object-position pan can look frozen).
+            const panClass =
+              isTall || isWide
+                ? "scale-[1.3] origin-left transition-transform duration-[3500ms] ease-linear will-change-transform group-hover:-translate-x-[14%]"
+                : "scale-[1.3] origin-top transition-transform duration-[3500ms] ease-linear will-change-transform group-hover:-translate-y-[14%]";
 
             return (
               <article
@@ -113,7 +115,7 @@ export default function GalleryContent() {
                   src={item.image}
                   alt={item.title}
                   fill
-                  className={`object-cover transition-[object-position] duration-[3500ms] ease-linear ${panClass}`}
+                  className={`object-cover ${panClass}`}
                   sizes={isWide ? "100vw" : "(max-width: 1024px) 50vw, 45vw"}
                   unoptimized={
                     item.image.startsWith("/uploads") ||

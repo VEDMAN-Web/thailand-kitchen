@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import AdminShell from "@/components/AdminShell";
 import MediaUpload from "@/components/MediaUpload";
+import HeroVideoUpload from "@/components/HeroVideoUpload";
 import { useAdminAuth } from "@/lib/AdminAuthContext";
 import { getHome, resetHome, updateHome } from "@/services/adminAPI";
 import { clsx } from "clsx";
@@ -409,8 +410,7 @@ function SectionEditor({
           value={data.image || ""}
           onChange={(v) => onChange({ ...data, image: v })}
         />
-        <Field
-          label="Video URL (optional)"
+        <HeroVideoUpload
           value={data.videoUrl || ""}
           onChange={(v) => onChange({ ...data, videoUrl: v })}
         />

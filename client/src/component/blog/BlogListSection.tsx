@@ -26,7 +26,7 @@ export default function BlogListSection() {
   const filtered =
     active === "All"
       ? posts
-      : posts.filter((post) => post.filter === active || active === "All");
+      : posts.filter((post) => post.filter === active);
 
   const featured = filtered.filter((post) => post.featured);
   const gridPosts = filtered.filter((post) => !post.featured);

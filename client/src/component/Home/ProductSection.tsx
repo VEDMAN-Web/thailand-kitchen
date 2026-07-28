@@ -6,26 +6,48 @@ import Link from "next/link";
 import { products } from "./ProductData";
 import { useCms } from "../../lib/CmsHomeContext";
 
+function toProductHref(slug: string) {
+  const clean = String(slug || "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase();
+  return clean ? `/products/${encodeURIComponent(clean)}` : "/products";
+}
+
 const ProductSection = () => {
-  const { products: cmsProducts } = useCms();
+  const { products: cmsProducts, loading } = useCms();
   const items = useMemo(() => {
+    // Keep UI stable: while CMS is loading, render nothing here.
+    if (loading) return [];
+
     if (cmsProducts.length > 0) {
       return cmsProducts.slice(0, 3).map((p) => ({
         id: p.id,
         title: p.name,
         image: p.image,
-        href: `/products/${p.slug}`,
+        href: toProductHref(p.slug),
       }));
     }
+
     return products.slice(0, 3).map((p) => ({
       id: p.id,
       title: p.title,
       image: p.image,
       href: "/products",
     }));
-  }, [cmsProducts]);
+  }, [cmsProducts, loading]);
 
   const [active, setActive] = useState<number | null>(null);
+
+  if (loading) {
+    return (
+      <section className="pb-6 lg:pb-8">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="h-[320px] sm:h-[520px] lg:h-[600px] rounded-2xl bg-[#ECE7DF] animate-pulse" />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="pb-6 lg:pb-8">

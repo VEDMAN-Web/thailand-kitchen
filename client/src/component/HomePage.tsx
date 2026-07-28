@@ -23,9 +23,33 @@ function HomePage() {
     title?: string;
     description?: string;
     buttonText?: string;
+    videoUrl?: string;
   }>("hero");
 
+  const heroVideo = (hero?.videoUrl || "").trim() || "/video/2.mp4?v=3";
+  const isEmbed =
+    /youtube\.com|youtu\.be|vimeo\.com/i.test(heroVideo);
+
+  const embedSrc = (() => {
+    if (!isEmbed) return heroVideo;
+    if (/youtube\.com\/embed\//i.test(heroVideo)) return heroVideo;
+    const yt =
+      heroVideo.match(/youtu\.be\/([^?&/]+)/i) ||
+      heroVideo.match(/[?&]v=([^?&]+)/i) ||
+      heroVideo.match(/youtube\.com\/shorts\/([^?&/]+)/i);
+    if (yt?.[1]) {
+      const start = heroVideo.match(/[?&](?:t|start)=(\d+)/i)?.[1];
+      return `https://www.youtube.com/embed/${yt[1]}?autoplay=1&mute=1&loop=1&playlist=${yt[1]}${start ? `&start=${start}` : ""}`;
+    }
+    const vimeo = heroVideo.match(/vimeo\.com\/(\d+)/i);
+    if (vimeo?.[1]) {
+      return `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&loop=1`;
+    }
+    return heroVideo;
+  })();
+
   useEffect(() => {
+    if (isEmbed) return;
     const video = videoRef.current;
     if (!video) return;
 
@@ -36,26 +60,36 @@ function HomePage() {
         /* Autoplay may be blocked until user interaction */
       });
     }
-  }, []);
+  }, [heroVideo, isEmbed]);
 
   return (
     <div className="w-full relative bg-[#F5F3EF]">
       <div className="relative overflow-hidden">
         <section className="bg-[#F5F3EF] px-3 pb-3 pt-[80px] sm:px-4 sm:pb-4 sm:pt-[84px]">
           <div className="relative w-full h-[calc(100vh-1.5rem)] sm:h-[calc(100vh-2rem)] overflow-hidden rounded-[1.5rem] sm:rounded-[2rem]">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              src="/video/2.mp4?v=3"
-              onCanPlay={() => {
-                videoRef.current?.play().catch(() => {});
-              }}
-              className="absolute inset-0 z-0 w-full h-full object-cover pointer-events-none"
-            />
+            {isEmbed ? (
+              <iframe
+                title="Hero video"
+                src={embedSrc}
+                className="absolute inset-0 z-0 h-full w-full pointer-events-none scale-[1.35] origin-center"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              />
+            ) : (
+              <video
+                key={heroVideo}
+                ref={videoRef}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                src={heroVideo}
+                onCanPlay={() => {
+                  videoRef.current?.play().catch(() => {});
+                }}
+                className="absolute inset-0 z-0 w-full h-full object-cover pointer-events-none"
+              />
+            )}
 
             <div className="absolute inset-0 bg-black/45" />
 

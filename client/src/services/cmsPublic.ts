@@ -11,6 +11,13 @@ import {
 
 const SITE_ID = "thailand-kitchen";
 
+function normalizeSlug(slug: string) {
+  return String(slug || "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase();
+}
+
 function cmsBase() {
   // Prefer same-origin proxy (works on localhost + LAN IP)
   if (typeof window !== "undefined") {
@@ -58,6 +65,16 @@ type CmsBlog = {
   excerpt: string;
   content: string;
   image: string;
+  gallery?: string[];
+  category?: string;
+  author?: string;
+  readTime?: string;
+  publishDate?: string;
+  bodySections?: { title?: string; content?: string; image?: string }[];
+  highlightTitle?: string;
+  highlightText?: string;
+  quote?: string;
+  quoteAuthor?: string;
   published: boolean;
   createdAt?: string;
 };
@@ -86,33 +103,49 @@ function mapCmsProduct(p: CmsProduct, index: number): ProductItem {
       ? p.gallery
       : [image, image, image];
   const layoutType = mapLayout(p.category);
+  const heroImages: [string, string, string] = [
+    galleryImages[0] || image,
+    galleryImages[1] || galleryImages[0] || image,
+    galleryImages[2] || galleryImages[1] || galleryImages[0] || image,
+  ];
+  const detailImages: [string, string] = [
+    galleryImages[0] || image,
+    galleryImages[1] || galleryImages[0] || image,
+  ];
 
   return {
     ...template,
     id: 10000 + index,
-    slug: p.slug,
+    slug: normalizeSlug(p.slug) || normalizeSlug(p.title).replace(/\s+/g, "-"),
     name: p.title,
     layout: p.category || layoutType,
     layoutType,
     image,
     bestSeller: Boolean(p.featured),
-    heroImages: galleryImages.slice(0, 3),
+    heroImages,
     tag: p.category || "Collection",
     headline: p.title,
     description: p.description || template.description,
     gallery: galleryImages.map((img) => ({ image: img, caption: p.title })),
-    detailImages: galleryImages.slice(0, 2),
+    detailImages,
     contactImage: image,
   };
 }
 
 function mapCmsBlog(b: CmsBlog, index: number): BlogPost {
-  const paragraphs = String(b.content || "")
-    .split(/\n{2,}/)
-    .map((s) => s.trim())
+  const fromSections = (b.bodySections || [])
+    .map((s) => [s.title, s.content].filter(Boolean).join("\n").trim())
     .filter(Boolean);
-  const date = b.createdAt
-    ? new Date(b.createdAt)
+  const paragraphs = fromSections.length
+    ? fromSections
+    : String(b.content || "")
+        .split(/\n{2,}/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+  const dateSource = b.publishDate || b.createdAt;
+  const date = dateSource
+    ? new Date(dateSource)
         .toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
@@ -121,22 +154,34 @@ function mapCmsBlog(b: CmsBlog, index: number): BlogPost {
         .toUpperCase()
     : "RECENT";
 
+  const gallery =
+    b.gallery && b.gallery.length >= 2
+      ? ([b.gallery[0], b.gallery[1]] as [string, string])
+      : ([
+          b.image || "/blog/blogImage (2).jpg",
+          "/blog/blogImage (3).jpg",
+        ] as [string, string]);
+
   return {
     id: 20000 + index,
     slug: b.slug,
     title: b.title,
     excerpt: b.excerpt || paragraphs[0] || "",
-    category: "Journal",
+    category: b.category || "Journal",
     filter: "All" as BlogCategory,
     date,
-    readTime: "5 MIN READ",
+    readTime: (b.readTime || "5 MIN READ").toUpperCase().includes("MIN")
+      ? (b.readTime || "5 MIN READ").toUpperCase()
+      : `${b.readTime || "5"} MIN READ`,
     image: b.image || "/blog/blogImage (1).jpg",
-    gallery: [
-      b.image || "/blog/blogImage (2).jpg",
-      "/blog/blogImage (3).jpg",
-    ],
+    gallery,
     featured: index === 0,
-    content: paragraphs.length ? paragraphs : [b.excerpt || b.title],
+    subsectionTitle: b.highlightTitle || undefined,
+    quote: b.quote || undefined,
+    quoteAuthor: b.quoteAuthor || undefined,
+    content: paragraphs.length
+      ? paragraphs
+      : [b.highlightText || b.excerpt || b.title],
   };
 }
 
@@ -149,8 +194,9 @@ export async function fetchHomeSections(): Promise<HomeSections> {
 }
 
 /**
- * Products: if admin has CMS products, those win (CMS-first).
- * Otherwise keep static seed data so the site never looks empty.
+ * Products: CMS is the source of truth (admin panel).
+ * Seeded defaults live in Mongo via listProducts ensureDefaultProducts.
+ * Static productItems only used when API is unreachable.
  */
 export async function fetchMergedProducts(): Promise<ProductItem[]> {
   try {
@@ -185,8 +231,12 @@ export async function fetchMergedBlogs(): Promise<BlogPost[]> {
 export async function fetchProductBySlug(
   slug: string
 ): Promise<ProductItem | undefined> {
+  const target = normalizeSlug(slug);
   const all = await fetchMergedProducts();
-  return all.find((p) => p.slug === slug) || productItems.find((p) => p.slug === slug);
+  return (
+    all.find((p) => normalizeSlug(p.slug) === target) ||
+    productItems.find((p) => normalizeSlug(p.slug) === target)
+  );
 }
 
 export async function fetchBlogBySlug(
@@ -296,4 +346,19 @@ export async function fetchMergedGallery(): Promise<CmsGallery[]> {
   }));
   if (cmsItems.length) return cmsItems;
   return galleryItems;
+}
+
+export async function fetchLegalPage(type: "privacy" | "terms") {
+  const json = (await cmsFetch(`/cms/${SITE_ID}/legal/${type}`)) as
+    | {
+        page?: {
+          title?: string;
+          subtitle?: string;
+          updatedLabel?: string;
+          content?: string;
+          sections?: { title?: string; body?: string }[];
+        };
+      }
+    | null;
+  return json?.page || null;
 }

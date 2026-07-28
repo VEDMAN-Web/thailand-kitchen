@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "./ProductCard";
 import {
-  productItems,
   productFilterTabs,
   PRODUCTS_PER_PAGE,
   type ProductFilterTab,
@@ -12,7 +11,6 @@ import {
   type ProductLayout,
 } from "./productData";
 import { useTranslation } from "../../i18n/LanguageProvider";
-import { fetchMergedProducts } from "../../services/cmsPublic";
 
 function tabToSlug(tab: ProductFilterTab) {
   return tab.toLowerCase().replace(/\s+/g, "-");
@@ -30,22 +28,12 @@ function tabFromQuery(value: string | null): ProductFilterTab | null {
   return match ?? null;
 }
 
-export default function ProductsListSection() {
+export default function ProductsListSection({ initialItems }: { initialItems: ProductItem[] }) {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const [layout, setLayout] = useState<ProductFilterTab>("Modern");
   const [page, setPage] = useState(1);
-  const [items, setItems] = useState<ProductItem[]>(productItems);
-
-  useEffect(() => {
-    let alive = true;
-    fetchMergedProducts().then((list) => {
-      if (alive) setItems(list);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const [items] = useState<ProductItem[]>(initialItems);
 
   useEffect(() => {
     const fromQuery =

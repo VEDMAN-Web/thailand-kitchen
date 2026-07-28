@@ -34,11 +34,23 @@ const productSchema = new mongoose.Schema(
     siteId: { type: String, enum: SITE_IDS, required: true, index: true },
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, trim: true },
+    subtitle: { type: String, default: "" },
+    productType: { type: String, default: "" },
+    sectionTag: { type: String, default: "" },
     description: { type: String, default: "" },
     image: { type: String, default: "" },
     icon: { type: String, default: "" },
     gallery: { type: [String], default: [] },
     pdfUrl: { type: String, default: "" },
+    featureHighlights: {
+      type: [
+        {
+          title: { type: String, default: "" },
+          description: { type: String, default: "" },
+        },
+      ],
+      default: [],
+    },
     category: { type: String, default: "" },
     featured: { type: Boolean, default: false },
   },
@@ -57,6 +69,23 @@ const blogSchema = new mongoose.Schema(
     image: { type: String, default: "" },
     gallery: { type: [String], default: [] },
     category: { type: String, default: "" },
+    author: { type: String, default: "" },
+    readTime: { type: String, default: "" },
+    publishDate: { type: String, default: "" },
+    bodySections: {
+      type: [
+        {
+          title: { type: String, default: "" },
+          content: { type: String, default: "" },
+          image: { type: String, default: "" },
+        },
+      ],
+      default: [],
+    },
+    highlightTitle: { type: String, default: "" },
+    highlightText: { type: String, default: "" },
+    quote: { type: String, default: "" },
+    quoteAuthor: { type: String, default: "" },
     published: { type: Boolean, default: true },
   },
   { timestamps: true }
@@ -69,7 +98,18 @@ const legalPageSchema = new mongoose.Schema(
     siteId: { type: String, enum: SITE_IDS, required: true },
     type: { type: String, enum: ["privacy", "terms"], required: true },
     title: { type: String, required: true },
+    subtitle: { type: String, default: "" },
+    updatedLabel: { type: String, default: "" },
     content: { type: String, default: "" },
+    sections: {
+      type: [
+        {
+          title: { type: String, default: "" },
+          body: { type: String, default: "" },
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true }
 );

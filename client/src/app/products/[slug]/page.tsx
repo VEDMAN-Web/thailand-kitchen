@@ -10,16 +10,28 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateStaticParams() {
-  const items = await fetchMergedProducts().catch(() => productItems);
-  return items.map((item) => ({ slug: item.slug }));
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product = await fetchProductBySlug(slug);
+  const normalized = decodeURIComponent(slug)
+    .trim()
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase();
+  const product = await fetchProductBySlug(normalized);
 
-  if (!product) notFound();
+  if (!product) {
+    const fromStatic = productItems.find(
+      (p) => p.slug.trim().replace(/^\/+|\/+$/g, "").toLowerCase() === normalized
+    );
+    if (!fromStatic) notFound();
+    return (
+      <main className="w-full">
+        <ProductDetailView product={fromStatic} />
+      </main>
+    );
+  }
 
   return (
     <main className="w-full">

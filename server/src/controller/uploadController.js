@@ -15,7 +15,8 @@ async function uploadToCloudinary(filePath, kind) {
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  const resourceType = kind === "pdf" ? "raw" : "image";
+  const resourceType =
+    kind === "pdf" ? "raw" : kind === "video" ? "video" : "image";
   const folder = `thailand-kitchens/${kind || "images"}`;
   const result = await cloudinary.uploader.upload(filePath, {
     folder,

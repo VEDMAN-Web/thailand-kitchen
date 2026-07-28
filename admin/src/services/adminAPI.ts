@@ -104,11 +104,15 @@ export type ProductItem = {
   _id: string;
   title: string;
   slug: string;
+  subtitle?: string;
+  productType?: string;
+  sectionTag?: string;
   description: string;
   image: string;
   icon?: string;
   gallery?: string[];
   pdfUrl?: string;
+  featureHighlights?: { title: string; description: string }[];
   category: string;
   featured: boolean;
 };
@@ -137,6 +141,12 @@ export async function deleteProduct(siteId: SiteId, id: string) {
   return data;
 }
 
+export type BlogBodySection = {
+  title: string;
+  content: string;
+  image?: string;
+};
+
 export type BlogItem = {
   _id: string;
   title: string;
@@ -146,7 +156,17 @@ export type BlogItem = {
   image: string;
   gallery?: string[];
   category?: string;
+  author?: string;
+  readTime?: string;
+  publishDate?: string;
+  bodySections?: BlogBodySection[];
+  highlightTitle?: string;
+  highlightText?: string;
+  quote?: string;
+  quoteAuthor?: string;
   published: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export async function listBlogs(siteId: SiteId) {
@@ -169,10 +189,18 @@ export async function deleteBlog(siteId: SiteId, id: string) {
   return data;
 }
 
+export type LegalSection = {
+  title: string;
+  body: string;
+};
+
 export type LegalPage = {
   _id: string;
   title: string;
+  subtitle?: string;
+  updatedLabel?: string;
   content: string;
+  sections?: LegalSection[];
   type: string;
 };
 
@@ -184,7 +212,13 @@ export async function getLegal(siteId: SiteId, type: "privacy" | "terms") {
 export async function updateLegal(
   siteId: SiteId,
   type: "privacy" | "terms",
-  body: { title: string; content: string }
+  body: {
+    title: string;
+    subtitle?: string;
+    updatedLabel?: string;
+    content?: string;
+    sections?: LegalSection[];
+  }
 ) {
   const { data } = await adminApi.put(`/cms/${siteId}/legal/${type}`, body);
   return data;
@@ -233,7 +267,10 @@ export async function deleteContact(id: string) {
 }
 
 /** Upload image, icon, or PDF for CMS fields */
-export async function uploadMedia(file: File, kind: "image" | "icon" | "pdf" | "any" = "image") {
+export async function uploadMedia(
+  file: File,
+  kind: "image" | "icon" | "pdf" | "video" | "any" = "image"
+) {
   const form = new FormData();
   form.append("kind", kind);
   form.append("file", file);
