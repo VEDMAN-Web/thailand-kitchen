@@ -59,6 +59,30 @@ const productSchema = new mongoose.Schema(
 
 productSchema.index({ siteId: 1, slug: 1 }, { unique: true });
 
+/** Per-locale copy for a blog. Empty fields fall back to the English base. */
+const blogTranslationSchema = new mongoose.Schema(
+  {
+    title: { type: String, default: "" },
+    excerpt: { type: String, default: "" },
+    category: { type: String, default: "" },
+    bodySections: {
+      type: [
+        {
+          title: { type: String, default: "" },
+          content: { type: String, default: "" },
+          image: { type: String, default: "" },
+        },
+      ],
+      default: [],
+    },
+    highlightTitle: { type: String, default: "" },
+    highlightText: { type: String, default: "" },
+    quote: { type: String, default: "" },
+    quoteAuthor: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 const blogSchema = new mongoose.Schema(
   {
     siteId: { type: String, enum: SITE_IDS, required: true, index: true },
@@ -86,6 +110,10 @@ const blogSchema = new mongoose.Schema(
     highlightText: { type: String, default: "" },
     quote: { type: String, default: "" },
     quoteAuthor: { type: String, default: "" },
+    translations: {
+      th: { type: blogTranslationSchema, default: () => ({}) },
+      pl: { type: blogTranslationSchema, default: () => ({}) },
+    },
     published: { type: Boolean, default: true },
   },
   { timestamps: true }

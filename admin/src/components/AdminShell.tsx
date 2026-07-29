@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Home,
   Package,
@@ -12,12 +13,21 @@ import {
   LogOut,
   ChevronDown,
   Images,
+  FolderKanban,
+  MessageCircleQuestion,
+  Star,
+  BookOpen,
+  BriefcaseBusiness,
+  Handshake,
+  MapPin,
+  Inbox,
+  Settings,
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/AdminAuthContext";
 import type { SiteId } from "@/services/adminAPI";
 import { clsx } from "clsx";
 
-const NAV = [
+const THAILAND_NAV = [
   { href: "/", label: "Home Page", icon: Home },
   { href: "/products", label: "Products", icon: Package },
   { href: "/gallery", label: "Gallery", icon: Images },
@@ -27,23 +37,82 @@ const NAV = [
   { href: "/users", label: "Users", icon: Users },
 ];
 
+const VARSOVIA_NAV = [
+  { href: "/varsovia?resource=site", resource: "site", label: "Site Settings", icon: Settings },
+  { href: "/varsovia?resource=products", resource: "products", label: "Products", icon: Package },
+  { href: "/varsovia?resource=projects", resource: "projects", label: "Interior Projects", icon: FolderKanban },
+  { href: "/varsovia?resource=blogs", resource: "blogs", label: "Blogs", icon: FileText },
+  { href: "/varsovia?resource=faqs", resource: "faqs", label: "FAQs", icon: MessageCircleQuestion },
+  { href: "/varsovia?resource=testimonials", resource: "testimonials", label: "Testimonials", icon: Star },
+  { href: "/varsovia?resource=catalogues", resource: "catalogues", label: "Catalogues", icon: BookOpen },
+  { href: "/varsovia?resource=showcases", resource: "showcases", label: "Showcases", icon: Images },
+  { href: "/varsovia?resource=team-members", resource: "team-members", label: "Team", icon: BriefcaseBusiness },
+  { href: "/varsovia?resource=partners", resource: "partners", label: "Partners", icon: Handshake },
+  { href: "/varsovia?resource=showrooms", resource: "showrooms", label: "Showrooms", icon: MapPin },
+  { href: "/varsovia?resource=contacts", resource: "contacts", label: "Contact Leads", icon: Inbox },
+];
+
 const SITES: { id: SiteId; name: string }[] = [
   { id: "thailand-kitchen", name: "Thailand Kitchen" },
   { id: "varsovia-kitchen", name: "Varsovia Kitchen" },
 ];
 
-export default function AdminShell({
-  children,
-  title,
-}: {
+type AdminShellProps = {
   children: React.ReactNode;
   title: string;
-}) {
-  const pathname = usePathname();
-  const { user, logout, siteId, setSiteId } = useAdminAuth();
+};
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+export default function AdminShell(props: AdminShellProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F4F5F7] p-8 text-sm text-[#6B7280]">
+          Loading admin…
+        </div>
+      }
+    >
+      <AdminShellContent {...props} />
+    </Suspense>
+  );
+}
+
+function AdminShellContent({
+  children,
+  title,
+}: AdminShellProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, logout, siteId, setSiteId } = useAdminAuth();
+  const isVarsovia = siteId === "varsovia-kitchen";
+  const nav = isVarsovia ? VARSOVIA_NAV : THAILAND_NAV;
+
+  useEffect(() => {
+    if (isVarsovia && !pathname.startsWith("/varsovia")) {
+      router.replace("/varsovia?resource=site");
+    } else if (!isVarsovia && pathname.startsWith("/varsovia")) {
+      router.replace("/");
+    }
+  }, [isVarsovia, pathname, router]);
+
+  const isActive = (item: { href: string; resource?: string }) => {
+    if (item.resource) {
+      return (
+        pathname === "/varsovia" &&
+        (searchParams.get("resource") || "site") === item.resource
+      );
+    }
+    return item.href === "/"
+      ? pathname === "/"
+      : pathname.startsWith(item.href);
+  };
+
+  const changeSite = (next: SiteId) => {
+    setSiteId(next);
+    router.push(
+      next === "varsovia-kitchen" ? "/varsovia?resource=site" : "/"
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#F4F5F7] text-[#1A1D26] flex">
@@ -56,13 +125,15 @@ export default function AdminShell({
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map(({ href, label, icon: Icon }) => (
+          {nav.map((item) => {
+            const { href, label, icon: Icon } = item;
+            return (
             <Link
               key={href}
               href={href}
               className={clsx(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                isActive(href)
+                isActive(item)
                   ? "bg-[#EEF0F3] text-[#1A2332]"
                   : "text-[#5C6370] hover:bg-[#F5F6F8] hover:text-[#1A2332]"
               )}
@@ -70,7 +141,8 @@ export default function AdminShell({
               <Icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
               {label}
             </Link>
-          ))}
+            );
+          })}
         </nav>
 
         <button
@@ -92,7 +164,7 @@ export default function AdminShell({
             <div className="relative">
               <select
                 value={siteId}
-                onChange={(e) => setSiteId(e.target.value as SiteId)}
+                onChange={(e) => changeSite(e.target.value as SiteId)}
                 className="appearance-none bg-[#F5F6F8] border border-[#E2E5EA] rounded-lg pl-3 pr-8 py-2 text-sm font-medium text-[#1A2332] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1A2332]/20"
               >
                 {SITES.map((s) => (

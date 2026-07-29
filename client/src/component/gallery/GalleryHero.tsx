@@ -98,7 +98,7 @@ type GalleryPageCms = {
 };
 
 export default function GalleryHero() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [cms, setCms] = useState<GalleryPageCms | null>(null);
 
   useEffect(() => {
@@ -112,9 +112,19 @@ export default function GalleryHero() {
     };
   }, []);
 
-  const eyebrow = cms?.eyebrow?.trim() || t("gallery.hero.eyebrow");
-  const title = cms?.title?.trim() || t("gallery.hero.title");
-  const description = cms?.description?.trim() || t("gallery.hero.description");
+  const useCmsCopy = locale === "EN";
+  const eyebrow =
+    useCmsCopy && cms?.eyebrow?.trim()
+      ? cms.eyebrow.trim()
+      : t("gallery.hero.eyebrow");
+  const title =
+    useCmsCopy && cms?.title?.trim()
+      ? cms.title.trim()
+      : t("gallery.hero.title");
+  const description =
+    useCmsCopy && cms?.description?.trim()
+      ? cms.description.trim()
+      : t("gallery.hero.description");
 
   const collage = (cms?.collage || []).filter(Boolean);
   const leftImages =

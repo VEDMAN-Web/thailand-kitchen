@@ -16,7 +16,7 @@ import { useTranslation } from "../i18n/LanguageProvider";
 import { useCmsSection } from "../lib/CmsHomeContext";
 
 function HomePage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const hero = useCmsSection<{
     subtitle?: string;
@@ -25,6 +25,22 @@ function HomePage() {
     buttonText?: string;
     videoUrl?: string;
   }>("hero");
+
+  // CMS copy is English-only — use i18n whenever language is not EN
+  const heroSubtitle =
+    locale === "EN" && hero?.subtitle
+      ? hero.subtitle
+      : t("home.hero.eyebrow");
+  const heroTitle =
+    locale === "EN" && hero?.title ? hero.title : t("home.hero.title");
+  const heroDescription =
+    locale === "EN" && hero?.description
+      ? hero.description
+      : t("home.hero.description");
+  const heroCta =
+    locale === "EN" && hero?.buttonText
+      ? hero.buttonText
+      : t("home.hero.cta");
 
   const heroVideo = (hero?.videoUrl || "").trim() || "/video/2.mp4?v=3";
   const isEmbed =
@@ -97,22 +113,22 @@ function HomePage() {
               <div className="max-w-[1440px] mx-auto h-full px-6 sm:px-8 lg:px-12">
                 <div className="absolute bottom-14 lg:bottom-20 left-6 sm:left-8 lg:left-12 right-6 sm:right-8 lg:right-12 max-w-4xl">
                   <p className="uppercase tracking-[0.28em] text-[#C4A484] text-xs sm:text-sm font-medium mb-4">
-                    {hero?.subtitle || t("home.hero.eyebrow")}
+                    {heroSubtitle}
                   </p>
 
                   <h1 className="text-white font-extrabold leading-tight text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wide uppercase whitespace-nowrap">
-                    {hero?.title || t("home.hero.title")}
+                    {heroTitle}
                   </h1>
 
                   <p className="mt-5 max-w-lg text-white/85 text-sm sm:text-base leading-7">
-                    {hero?.description || t("home.hero.description")}
+                    {heroDescription}
                   </p>
 
                   <Link
                     href="/contact"
                     className="mt-8 inline-flex items-center gap-2 bg-white text-[#1A1A1A] px-7 py-3.5 rounded-full text-sm font-semibold hover:bg-gray-100 transition"
                   >
-                    {hero?.buttonText || t("home.hero.cta")}
+                    {heroCta}
                     <span aria-hidden>↗</span>
                   </Link>
                 </div>

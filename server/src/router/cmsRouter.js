@@ -1,5 +1,6 @@
 const express = require("express");
 const cms = require("../controller/cmsController");
+const ai = require("../controller/aiController");
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -27,6 +28,7 @@ router.post("/:siteId/products", protect, cms.createProduct);
 router.put("/:siteId/products/:id", protect, cms.updateProduct);
 router.delete("/:siteId/products/:id", protect, cms.deleteProduct);
 
+router.post("/:siteId/blogs/generate-ai", protect, ai.generateBlog);
 router.post("/:siteId/blogs", protect, cms.createBlog);
 router.put("/:siteId/blogs/:id", protect, cms.updateBlog);
 router.delete("/:siteId/blogs/:id", protect, cms.deleteBlog);

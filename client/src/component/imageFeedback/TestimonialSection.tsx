@@ -8,8 +8,11 @@ import "swiper/css";
 import { testimonials } from "./testimonialData";
 import TestimonialCard from "./TestimonialCard";
 import { useCmsSection } from "../../lib/CmsHomeContext";
+import { useTranslation } from "../../i18n/LanguageProvider";
+import type { TranslationKey } from "../../i18n/translations";
 
 export default function TestimonialSection() {
+  const { t, locale } = useTranslation();
   const cms = useCmsSection<{
     items?: { name?: string; role?: string; quote?: string; image?: string }[];
   }>("testimonials");
@@ -25,7 +28,15 @@ export default function TestimonialSection() {
       review: item.quote || "",
     }));
 
-  const list = cmsItems.length > 0 ? cmsItems : testimonials;
+  const localizedFallback = testimonials.map((item) => ({
+    ...item,
+    role: t(`home.testimonials.${item.id}.role` as TranslationKey),
+    review: t(`home.testimonials.${item.id}.review` as TranslationKey),
+  }));
+
+  // CMS testimonials are English-only — use translated fallbacks for TH/PL
+  const list =
+    locale === "EN" && cmsItems.length > 0 ? cmsItems : localizedFallback;
 
   return (
     <section className="pb-10 lg:pb-12">

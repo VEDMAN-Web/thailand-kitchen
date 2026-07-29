@@ -1,32 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import BlogFilters from "./BlogFilters";
 import BlogFeaturedCard from "./BlogFeaturedCard";
 import BlogCard from "./BlogCard";
-import { blogPosts, BlogCategory, type BlogPost } from "./blogData";
+import { BlogCategory, type BlogPost } from "./blogData";
 import { useTranslation } from "../../i18n/LanguageProvider";
-import { fetchMergedBlogs } from "../../services/cmsPublic";
 
-export default function BlogListSection() {
+export default function BlogListSection({
+  initialPosts,
+}: {
+  initialPosts: BlogPost[];
+}) {
   const { t } = useTranslation();
   const [active, setActive] = useState<BlogCategory>("All");
-  const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
-
-  useEffect(() => {
-    let alive = true;
-    fetchMergedBlogs().then((list) => {
-      if (alive) setPosts(list);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const [posts] = useState<BlogPost[]>(initialPosts);
 
   const filtered =
     active === "All"
       ? posts
-      : posts.filter((post) => post.filter === active);
+      : posts.filter(
+          (post) =>
+            post.filter === active ||
+            post.category.toLowerCase() === active.toLowerCase()
+        );
 
   const featured = filtered.filter((post) => post.featured);
   const gridPosts = filtered.filter((post) => !post.featured);
@@ -48,9 +45,7 @@ export default function BlogListSection() {
           ))}
         </div>
       ) : (
-        <p className="mt-16 text-left text-[#6B6B6B]">
-          {t("blog.empty")}
-        </p>
+        <p className="mt-16 text-left text-[#6B6B6B]">{t("blog.empty")}</p>
       )}
     </section>
   );

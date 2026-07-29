@@ -835,6 +835,44 @@ function asBodySections(value) {
     .filter((s) => s.title || s.content || s.image);
 }
 
+const BLOG_LOCALES = ["th", "pl"];
+
+/** Keep only known per-locale blog fields so strict schema writes succeed. */
+function asBlogTranslations(value) {
+  const source = value && typeof value === "object" ? value : {};
+  return BLOG_LOCALES.reduce((acc, locale) => {
+    const entry = source[locale] && typeof source[locale] === "object"
+      ? source[locale]
+      : {};
+    acc[locale] = {
+      title: String(entry.title || "").trim(),
+      excerpt: String(entry.excerpt || "").trim(),
+      category: String(entry.category || "").trim(),
+      bodySections: asBodySections(entry.bodySections),
+      highlightTitle: String(entry.highlightTitle || "").trim(),
+      highlightText: String(entry.highlightText || "").trim(),
+      quote: String(entry.quote || "").trim(),
+      quoteAuthor: String(entry.quoteAuthor || "").trim(),
+    };
+    return acc;
+  }, {});
+}
+
+/**
+ * Blog slugs are unique per site. Two articles can legitimately share a title,
+ * so append a counter instead of rejecting the save.
+ */
+async function uniqueBlogSlug(siteId, baseSlug, excludeId) {
+  for (let suffix = 0; suffix < 100; suffix += 1) {
+    const candidate = suffix === 0 ? baseSlug : `${baseSlug}-${suffix + 1}`;
+    const query = { siteId, slug: candidate };
+    if (excludeId) query._id = { $ne: excludeId };
+    const taken = await Blog.exists(query);
+    if (!taken) return candidate;
+  }
+  return `${baseSlug}-${Date.now()}`;
+}
+
 function contentFromBodySections(sections) {
   return asBodySections(sections)
     .map((s) => [s.title, s.content].filter(Boolean).join("\n"))
@@ -984,13 +1022,14 @@ const createBlog = asyncHandler(async (req, res) => {
   }
 
   const title = String(req.body.title || "").trim();
-  const slug = slugify(req.body.slug || title);
-  if (!title || !slug) {
+  const baseSlug = slugify(req.body.slug || title);
+  if (!title || !baseSlug) {
     return res
       .status(400)
       .json({ success: false, message: "Title and slug are required" });
   }
 
+  const slug = await uniqueBlogSlug(siteId, baseSlug);
   const bodySections = asBodySections(req.body.bodySections);
   const content =
     String(req.body.content || "").trim() ||
@@ -1013,6 +1052,7 @@ const createBlog = asyncHandler(async (req, res) => {
     highlightText: String(req.body.highlightText || ""),
     quote: String(req.body.quote || ""),
     quoteAuthor: String(req.body.quoteAuthor || ""),
+    translations: asBlogTranslations(req.body.translations),
     published: req.body.published !== false,
   });
 
@@ -1022,7 +1062,14 @@ const createBlog = asyncHandler(async (req, res) => {
 const updateBlog = asyncHandler(async (req, res) => {
   const { siteId, id } = req.params;
   const title = String(req.body.title || "").trim();
-  const slug = slugify(req.body.slug || title);
+  const baseSlug = slugify(req.body.slug || title);
+  if (!title || !baseSlug) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Title and slug are required" });
+  }
+
+  const slug = await uniqueBlogSlug(siteId, baseSlug, id);
   const bodySections = asBodySections(req.body.bodySections);
   const content =
     String(req.body.content || "").trim() ||
@@ -1047,6 +1094,7 @@ const updateBlog = asyncHandler(async (req, res) => {
         highlightText: String(req.body.highlightText || ""),
         quote: String(req.body.quote || ""),
         quoteAuthor: String(req.body.quoteAuthor || ""),
+        translations: asBlogTranslations(req.body.translations),
         published: req.body.published !== false,
       },
     },

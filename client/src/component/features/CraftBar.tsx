@@ -12,14 +12,15 @@ const craftItems = [
 ] as const;
 
 export default function CraftBar() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const transition = useCmsSection<{
     pillars?: { title?: string; description?: string }[];
   }>("transition");
   const pillars = transition?.pillars?.filter((p) => p?.title) || [];
 
+  // CMS pillars are English-only — fall back to i18n for other languages
   const items =
-    pillars.length > 0
+    locale === "EN" && pillars.length > 0
       ? pillars.map((p, i) => ({
           id: String(i + 1).padStart(2, "0"),
           title: p.title || "",

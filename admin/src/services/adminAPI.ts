@@ -147,6 +147,25 @@ export type BlogBodySection = {
   image?: string;
 };
 
+export type BlogLocale = "en" | "th" | "pl";
+
+/** Per-locale blog copy. Blank fields fall back to the English base. */
+export type BlogTranslation = {
+  title: string;
+  excerpt: string;
+  category: string;
+  bodySections: BlogBodySection[];
+  highlightTitle: string;
+  highlightText: string;
+  quote: string;
+  quoteAuthor: string;
+};
+
+export type BlogTranslations = {
+  th: BlogTranslation;
+  pl: BlogTranslation;
+};
+
 export type BlogItem = {
   _id: string;
   title: string;
@@ -164,6 +183,7 @@ export type BlogItem = {
   highlightText?: string;
   quote?: string;
   quoteAuthor?: string;
+  translations?: Partial<Record<"th" | "pl", Partial<BlogTranslation>>>;
   published: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -177,6 +197,39 @@ export async function listBlogs(siteId: SiteId) {
 export async function createBlog(siteId: SiteId, body: Partial<BlogItem>) {
   const { data } = await adminApi.post(`/cms/${siteId}/blogs`, body);
   return data;
+}
+
+export async function generateBlogWithAI(
+  siteId: SiteId,
+  body: { topic?: string } = {}
+) {
+  const { data } = await adminApi.post(
+    `/cms/${siteId}/blogs/generate-ai`,
+    body,
+    { timeout: 90000 }
+  );
+  return data as {
+    success: boolean;
+    source?: "openai" | "fallback";
+    warning?: string;
+    article: {
+      title: string;
+      category: string;
+      readTime: string;
+      author: string;
+      excerpt: string;
+      bodySections: BlogBodySection[];
+      highlightTitle: string;
+      highlightText: string;
+      quote: string;
+      quoteAuthor: string;
+      publishDate: string;
+      image: string;
+      gallery1?: string;
+      gallery2?: string;
+      published: boolean;
+    };
+  };
 }
 
 export async function updateBlog(siteId: SiteId, id: string, body: Partial<BlogItem>) {

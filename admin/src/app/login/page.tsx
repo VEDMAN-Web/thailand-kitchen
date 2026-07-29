@@ -26,12 +26,17 @@ export default function AdminLoginPage() {
         message?: string;
         response?: { status?: number; data?: { message?: string } };
       };
+      const status = ax.response?.status;
       const offline =
         ax.code === "ERR_NETWORK" ||
         ax.message?.includes("Network Error") ||
-        !ax.response;
+        !ax.response ||
+        status === 502 ||
+        status === 503 ||
+        status === 504 ||
+        (status === 500 && !ax.response?.data?.message);
       const msg = offline
-        ? "Cannot reach API server. Start server on port 5000."
+        ? "Cannot reach API server. Start the server on port 5000 (cd server && npm run start)."
         : ax.response?.data?.message || "Invalid email or password";
       toast.error(msg);
     } finally {

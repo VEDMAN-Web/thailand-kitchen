@@ -5,6 +5,17 @@ export type BlogCategory =
   | "Style & Color"
   | "Materials";
 
+/** Translated copy authored in the admin panel. Blank fields fall back to English. */
+export interface BlogTranslation {
+  title?: string;
+  excerpt?: string;
+  category?: string;
+  subsectionTitle?: string;
+  quote?: string;
+  quoteAuthor?: string;
+  content?: string[];
+}
+
 export interface BlogPost {
   id: number;
   slug: string;
@@ -13,6 +24,8 @@ export interface BlogPost {
   category: string;
   filter: BlogCategory;
   date: string;
+  /** Raw date so the UI can re-format per locale */
+  dateISO?: string;
   readTime: string;
   image: string;
   gallery?: [string, string];
@@ -22,6 +35,7 @@ export interface BlogPost {
   featured?: boolean;
   featuredLayout?: "image-left" | "image-right";
   content: string[];
+  translations?: { th?: BlogTranslation; pl?: BlogTranslation };
 }
 
 const IMG1 = "/blog/blogImage (1).jpg";

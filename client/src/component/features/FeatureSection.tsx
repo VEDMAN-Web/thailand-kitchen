@@ -7,14 +7,15 @@ import type { TranslationKey } from "../../i18n/translations";
 import { useCmsSection } from "../../lib/CmsHomeContext";
 
 export default function FeatureSection() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const advantages = useCmsSection<{
     items?: { title?: string; description?: string }[];
   }>("advantages");
   const cmsItems = advantages?.items?.filter((i) => i?.title) || [];
 
+  // CMS copy is English-only — fall back to i18n for other languages
   const items =
-    cmsItems.length > 0
+    locale === "EN" && cmsItems.length > 0
       ? cmsItems.map((item, index) => ({
           id: index + 1,
           title: item.title || "",

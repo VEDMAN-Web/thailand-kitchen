@@ -11,6 +11,17 @@ import {
   type ProductLayout,
 } from "./productData";
 import { useTranslation } from "../../i18n/LanguageProvider";
+import type { TranslationKey } from "../../i18n/translations";
+
+const tabLabelKeys: Record<ProductFilterTab, TranslationKey> = {
+  Modern: "products.tab.modern",
+  Islands: "products.tab.islands",
+  "U Shape": "products.tab.uShape",
+  "L Shape": "products.tab.lShape",
+  Straight: "products.tab.straight",
+  "T Shape": "products.tab.tShape",
+  "Best Seller": "products.tab.bestSeller",
+};
 
 function tabToSlug(tab: ProductFilterTab) {
   return tab.toLowerCase().replace(/\s+/g, "-");
@@ -94,7 +105,7 @@ export default function ProductsListSection({ initialItems }: { initialItems: Pr
                   : "bg-[#EDE8E1] text-[#1A1A1A] hover:bg-[#E5DFD6]"
               }`}
             >
-              {item}
+              {t(tabLabelKeys[item])}
             </button>
           );
         })}

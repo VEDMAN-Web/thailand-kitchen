@@ -35,8 +35,7 @@ export const contactInfo = [
 export type SocialIconName = "instagram" | "facebook" | "whatsapp" | "x";
 
 export const socialLinks: { name: SocialIconName; link: string; label: string }[] = [
-  { name: "instagram", link: "https://www.instagram.com/?hl=en", label: "Instagram" },
+  { name: "instagram", link: "https://www.facebook.com/ThailandKitchens/", label: "Instagram" },
   { name: "facebook", link: "https://www.facebook.com/ThailandKitchens/", label: "Facebook" },
   { name: "whatsapp", link: "https://web.whatsapp.com/", label: "WhatsApp" },
-  { name: "x", link: "https://x.com/", label: "X" },
 ];

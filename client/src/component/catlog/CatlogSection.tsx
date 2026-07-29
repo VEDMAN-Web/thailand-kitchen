@@ -6,6 +6,7 @@ import { Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { products } from "./catlogData";
 import { useTranslation } from "../../i18n/LanguageProvider";
+import type { TranslationKey } from "../../i18n/translations";
 import { createContact } from "../../services/contactAPI";
 import {
   fetchMergedCatalogues,
@@ -32,26 +33,29 @@ type GateErrors = Partial<Record<keyof GateForm, string>>;
 const lettersOnlyPattern = /^[\p{L}\s'.-]+$/u;
 const emptyGate: GateForm = { fullName: "", email: "", phoneNumber: "" };
 
-function validateGateForm(data: GateForm): GateErrors {
+function validateGateForm(
+  data: GateForm,
+  t: (key: TranslationKey) => string
+): GateErrors {
   const errors: GateErrors = {};
   const email = data.email.trim();
   const phone = data.phoneNumber.trim();
 
   if (!data.fullName.trim()) {
-    errors.fullName = "Full name is required";
+    errors.fullName = t("form.error.fullNameRequired");
   } else if (!lettersOnlyPattern.test(data.fullName.trim())) {
-    errors.fullName = "Full name must contain only letters";
+    errors.fullName = t("form.error.fullNameLetters");
   }
 
   if (!email && !phone) {
-    errors.email = "Please provide email or phone number";
-    errors.phoneNumber = "Please provide email or phone number";
+    errors.email = t("form.error.emailOrPhone");
+    errors.phoneNumber = t("form.error.emailOrPhone");
   } else {
     if (email && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
-      errors.email = "Invalid email address";
+      errors.email = t("form.error.emailInvalid");
     }
     if (phone && !/^\+?[0-9]{7,15}$/.test(phone)) {
-      errors.phoneNumber = "Enter a valid phone number (7–15 digits)";
+      errors.phoneNumber = t("form.error.phoneDigits");
     }
   }
 
@@ -199,7 +203,7 @@ export default function CatlogSection() {
   const handleGateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const errors = validateGateForm(gateForm);
+    const errors = validateGateForm(gateForm, t);
     if (Object.keys(errors).length > 0) {
       setGateErrors(errors);
       return;
@@ -363,7 +367,7 @@ export default function CatlogSection() {
             })}
           </div>
 
-          <div className="flex justify-center gap-2 mt-6">
+          <div className="hidden sm:flex justify-center gap-2 mt-6">
             {items.map((item, index) => (
               <button
                 key={item.id}

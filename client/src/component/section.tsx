@@ -81,7 +81,7 @@ function CountValue({
 }
 
 export default function StatsSection() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const sectionRef = useRef<HTMLElement | null>(null);
   const [active, setActive] = useState(false);
   const cmsStats = useCmsSection<{
@@ -183,7 +183,7 @@ export default function StatsSection() {
                 />
               </p>
               <p className="mt-2 text-sm md:text-base text-white/55">
-                {item.label || t(item.titleKey)}
+                {locale === "EN" && item.label ? item.label : t(item.titleKey)}
               </p>
             </div>
           ))}

@@ -19,16 +19,23 @@ function normalizeSlug(slug: string) {
 }
 
 function cmsBase() {
-  // Prefer same-origin proxy (works on localhost + LAN IP)
+  // Browser: same-origin rewrite → Express /api (works on localhost + LAN IP)
   if (typeof window !== "undefined") {
     return "/cms-api";
   }
-  const raw =
-    process.env.NEXT_PUBLIC_CMS_API_URL?.trim() ||
-    process.env.BACKEND_URL?.trim() ||
-    "http://127.0.0.1:5000/api";
-  if (!raw || raw === "/api") return "http://127.0.0.1:5000/api";
-  return raw.replace(/\/+$/, "");
+
+  // Explicit CMS URL (must be absolute for Node fetch)
+  const cms = process.env.NEXT_PUBLIC_CMS_API_URL?.trim();
+  if (cms && !cms.startsWith("/")) {
+    return cms.replace(/\/+$/, "") || "http://127.0.0.1:5000/api";
+  }
+
+  // BACKEND_URL is host only (e.g. http://127.0.0.1:5000) — append /api
+  const backend = (
+    process.env.BACKEND_URL?.trim() || "http://127.0.0.1:5000"
+  ).replace(/\/+$/, "");
+  if (/\/api$/i.test(backend)) return backend;
+  return `${backend}/api`;
 }
 
 async function cmsFetch(path: string) {
@@ -58,6 +65,17 @@ type CmsProduct = {
   featured: boolean;
 };
 
+type CmsBlogTranslation = {
+  title?: string;
+  excerpt?: string;
+  category?: string;
+  bodySections?: { title?: string; content?: string; image?: string }[];
+  highlightTitle?: string;
+  highlightText?: string;
+  quote?: string;
+  quoteAuthor?: string;
+};
+
 type CmsBlog = {
   _id: string;
   title: string;
@@ -75,6 +93,7 @@ type CmsBlog = {
   highlightText?: string;
   quote?: string;
   quoteAuthor?: string;
+  translations?: { th?: CmsBlogTranslation; pl?: CmsBlogTranslation };
   published: boolean;
   createdAt?: string;
 };
@@ -132,10 +151,31 @@ function mapCmsProduct(p: CmsProduct, index: number): ProductItem {
   };
 }
 
-function mapCmsBlog(b: CmsBlog, index: number): BlogPost {
-  const fromSections = (b.bodySections || [])
+function sectionsToParagraphs(
+  sections?: { title?: string; content?: string }[]
+) {
+  return (sections || [])
     .map((s) => [s.title, s.content].filter(Boolean).join("\n").trim())
     .filter(Boolean);
+}
+
+function mapBlogTranslation(value?: CmsBlogTranslation) {
+  if (!value) return undefined;
+  const content = sectionsToParagraphs(value.bodySections);
+  const translated = {
+    title: value.title?.trim() || undefined,
+    excerpt: value.excerpt?.trim() || undefined,
+    category: value.category?.trim() || undefined,
+    subsectionTitle: value.highlightTitle?.trim() || undefined,
+    quote: value.quote?.trim() || undefined,
+    quoteAuthor: value.quoteAuthor?.trim() || undefined,
+    content: content.length ? content : undefined,
+  };
+  return Object.values(translated).some(Boolean) ? translated : undefined;
+}
+
+function mapCmsBlog(b: CmsBlog, index: number): BlogPost {
+  const fromSections = sectionsToParagraphs(b.bodySections);
   const paragraphs = fromSections.length
     ? fromSections
     : String(b.content || "")
@@ -153,6 +193,7 @@ function mapCmsBlog(b: CmsBlog, index: number): BlogPost {
         })
         .toUpperCase()
     : "RECENT";
+  const dateISO = dateSource ? new Date(dateSource).toISOString() : undefined;
 
   const gallery =
     b.gallery && b.gallery.length >= 2
@@ -164,12 +205,13 @@ function mapCmsBlog(b: CmsBlog, index: number): BlogPost {
 
   return {
     id: 20000 + index,
-    slug: b.slug,
+    slug: normalizeSlug(b.slug) || normalizeSlug(b.title).replace(/\s+/g, "-"),
     title: b.title,
     excerpt: b.excerpt || paragraphs[0] || "",
     category: b.category || "Journal",
     filter: "All" as BlogCategory,
     date,
+    dateISO,
     readTime: (b.readTime || "5 MIN READ").toUpperCase().includes("MIN")
       ? (b.readTime || "5 MIN READ").toUpperCase()
       : `${b.readTime || "5"} MIN READ`,
@@ -182,6 +224,10 @@ function mapCmsBlog(b: CmsBlog, index: number): BlogPost {
     content: paragraphs.length
       ? paragraphs
       : [b.highlightText || b.excerpt || b.title],
+    translations: {
+      th: mapBlogTranslation(b.translations?.th),
+      pl: mapBlogTranslation(b.translations?.pl),
+    },
   };
 }
 
@@ -242,8 +288,12 @@ export async function fetchProductBySlug(
 export async function fetchBlogBySlug(
   slug: string
 ): Promise<BlogPost | undefined> {
+  const target = normalizeSlug(slug);
   const all = await fetchMergedBlogs();
-  return all.find((b) => b.slug === slug) || blogPosts.find((b) => b.slug === slug);
+  return (
+    all.find((b) => normalizeSlug(b.slug) === target) ||
+    blogPosts.find((b) => normalizeSlug(b.slug) === target)
+  );
 }
 
 export type CmsCatalogue = {

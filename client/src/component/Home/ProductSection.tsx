@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { products } from "./ProductData";
 import { useCms } from "../../lib/CmsHomeContext";
+import { useTranslation } from "../../i18n/LanguageProvider";
 
 function toProductHref(slug: string) {
   const clean = String(slug || "")
@@ -15,6 +16,7 @@ function toProductHref(slug: string) {
 }
 
 const ProductSection = () => {
+  const { t } = useTranslation();
   const { products: cmsProducts, loading } = useCms();
   const items = useMemo(() => {
     // Keep UI stable: while CMS is loading, render nothing here.
@@ -98,7 +100,7 @@ const ProductSection = () => {
           })}
         </div>
 
-        <div className="flex justify-center gap-2 mt-6">
+        <div className="hidden sm:flex justify-center gap-2 mt-6">
           {items.map((product, index) => (
             <button
               key={product.id}
@@ -119,7 +121,7 @@ const ProductSection = () => {
             href="/products"
             className="inline-flex items-center bg-[#1A1A1A] text-white px-6 py-3 rounded-full text-sm font-medium"
           >
-            View Collection
+            {t("home.products.cta")}
           </Link>
         </div>
       </div>

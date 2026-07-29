@@ -14,6 +14,11 @@ const contactLabelKeys: Record<string, TranslationKey> = {
   "Call Us": "contact.callUs",
 };
 
+const locationTitleKeys: Record<number, TranslationKey> = {
+  1: "contact.location.pattaya",
+  2: "contact.location.samui",
+};
+
 function MapPinIcon() {
   return (
     <svg
@@ -97,7 +102,7 @@ export default function ContactInfoPanel() {
               <MapPinIcon />
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wide text-[#1A1A1A]">
-                  {location.title}
+                  {t(locationTitleKeys[location.id])}
                 </h3>
                 <p className="mt-1 text-sm text-[#6B6B6B] leading-6 whitespace-pre-line">
                   {location.address}

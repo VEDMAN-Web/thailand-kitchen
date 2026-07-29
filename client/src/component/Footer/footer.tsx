@@ -83,7 +83,7 @@ function scrollToFooterTarget(href: string) {
 }
 
 export default function Footer() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const router = useRouter();
   const footerCms = useCmsSection<{
     address?: string;
@@ -94,10 +94,17 @@ export default function Footer() {
     line?: string;
   }>("footer");
 
+  // CMS address copy is English-only — use i18n for TH/PL.
+  // Email and phone are the same in every language, so they stay on CMS.
+  const address =
+    locale === "EN"
+      ? footerCms?.address || contactInfo[0].text
+      : t("footer.address");
+
   const contactItems = [
     {
       icon: "/footer/location.png",
-      text: footerCms?.address || contactInfo[0].text,
+      text: address,
     },
     {
       icon: "/footer/email.png",
@@ -174,7 +181,7 @@ export default function Footer() {
             </div>
 
             <p className="mt-6 mb-0 text-white text-sm leading-6 max-w-xs">
-              Partnered with Livio.Dsign by Oppolia Home
+              {t("footer.partnered")}
             </p>
           </div>
 
@@ -222,7 +229,7 @@ export default function Footer() {
             </h3>
             <div className="space-y-5">
               {contactItems.map((item, index) => (
-                <div key={index} className="flex gap-3 items-start">
+                <div key={index} className="flex gap-3 items-center">
                   <div className="w-9 h-9 rounded-full border border-[#B38B6D]/50 flex items-center justify-center shrink-0">
                     <Image src={item.icon} alt="" width={16} height={16} />
                   </div>
@@ -236,13 +243,13 @@ export default function Footer() {
                   href="/privacy"
                   className="text-white/70 text-[11px] leading-4 hover:text-white transition"
                 >
-                  Privacy Policy
+                  {t("footer.privacy")}
                 </Link>
                 <Link
                   href="/terms"
                   className="text-white/70 text-[11px] leading-4 hover:text-white transition"
                 >
-                  Terms & Conditions
+                  {t("footer.terms")}
                 </Link>
               </div>
             </div>
@@ -250,9 +257,27 @@ export default function Footer() {
         </div>
 
         <div className="relative mt-10 pt-8 border-t border-white/10">
-          <p className="pointer-events-none select-none absolute left-0 right-0 -top-6 text-center text-[12vw] leading-none font-semibold text-white/[0.04] tracking-tight whitespace-nowrap overflow-hidden">
-            Thailand Kitchen
-          </p>
+          <div
+            aria-hidden
+            className="pointer-events-none select-none w-full mb-3"
+          >
+            <svg
+              viewBox="0 0 1200 90"
+              className="w-full h-[clamp(2.5rem,7vw,5.5rem)]"
+              preserveAspectRatio="none"
+            >
+              <text
+                x="0"
+                y="68"
+                textLength="1200"
+                lengthAdjust="spacingAndGlyphs"
+                fill="rgba(255,255,255,0.04)"
+                style={{ fontSize: 72, fontWeight: 600, fontFamily: "inherit" }}
+              >
+                Thailand Kitchen
+              </text>
+            </svg>
+          </div>
           <p className="relative z-10 text-center text-white/40 text-xs">
             {t("footer.rights", { year: new Date().getFullYear() })}
           </p>

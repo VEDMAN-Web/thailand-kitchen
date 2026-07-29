@@ -1,25 +1,38 @@
 import { notFound } from "next/navigation";
 import BlogDetailView from "../../../component/blog/BlogDetailView";
 import { blogPosts } from "../../../component/blog/blogData";
-import {
-  fetchBlogBySlug,
-  fetchMergedBlogs,
-} from "../../../services/cmsPublic";
+import { fetchBlogBySlug } from "../../../services/cmsPublic";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateStaticParams() {
-  const posts = await fetchMergedBlogs().catch(() => blogPosts);
-  return posts.map((post) => ({ slug: post.slug }));
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function normalizeSlug(slug: string) {
+  return String(slug || "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase();
 }
 
 export default async function Page({ params }: Props) {
   const { slug } = await params;
-  const post = await fetchBlogBySlug(slug);
+  const normalized = normalizeSlug(decodeURIComponent(slug));
+  const post = await fetchBlogBySlug(normalized);
 
-  if (!post) notFound();
+  if (!post) {
+    const fromStatic = blogPosts.find(
+      (p) => normalizeSlug(p.slug) === normalized
+    );
+    if (!fromStatic) notFound();
+    return (
+      <main className="w-full">
+        <BlogDetailView post={fromStatic} />
+      </main>
+    );
+  }
 
   return (
     <main className="w-full">

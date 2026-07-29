@@ -10,9 +10,11 @@ import {
   ChevronRight,
   LayoutGrid,
   List,
+  Loader2,
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -23,11 +25,31 @@ import { useAdminAuth } from "@/lib/AdminAuthContext";
 import {
   createBlog,
   deleteBlog,
+  generateBlogWithAI,
   listBlogs,
   updateBlog,
   type BlogBodySection,
   type BlogItem,
+  type BlogLocale,
+  type BlogTranslation,
+  type BlogTranslations,
 } from "@/services/adminAPI";
+
+const LANGUAGES: { id: BlogLocale; label: string }[] = [
+  { id: "en", label: "English" },
+  { id: "th", label: "ไทย (Thai)" },
+  { id: "pl", label: "Polski (Polish)" },
+];
+
+/** Fields that differ per language. Everything else is shared across locales. */
+type TranslatableField =
+  | "title"
+  | "category"
+  | "excerpt"
+  | "highlightTitle"
+  | "highlightText"
+  | "quote"
+  | "quoteAuthor";
 
 type FormState = {
   title: string;
@@ -45,8 +67,45 @@ type FormState = {
   quoteAuthor: string;
   gallery1: string;
   gallery2: string;
+  translations: BlogTranslations;
   published: boolean;
 };
+
+const emptyTranslation = (): BlogTranslation => ({
+  title: "",
+  excerpt: "",
+  category: "",
+  bodySections: [],
+  highlightTitle: "",
+  highlightText: "",
+  quote: "",
+  quoteAuthor: "",
+});
+
+const emptyTranslations = (): BlogTranslations => ({
+  th: emptyTranslation(),
+  pl: emptyTranslation(),
+});
+
+/** Older form state (or a record saved before translations existed) may omit these. */
+function safeTranslations(value?: Partial<BlogTranslations>): BlogTranslations {
+  return {
+    th: toTranslation(value?.th),
+    pl: toTranslation(value?.pl),
+  };
+}
+
+function toTranslation(value?: Partial<BlogTranslation>): BlogTranslation {
+  return {
+    ...emptyTranslation(),
+    ...(value || {}),
+    bodySections: (value?.bodySections || []).map((s) => ({
+      title: s.title || "",
+      content: s.content || "",
+      image: s.image || "",
+    })),
+  };
+}
 
 const emptyForm = (): FormState => ({
   title: "",
@@ -64,6 +123,7 @@ const emptyForm = (): FormState => ({
   quoteAuthor: "",
   gallery1: "",
   gallery2: "",
+  translations: emptyTranslations(),
   published: true,
 });
 
@@ -85,6 +145,10 @@ export default function AdminBlogsPage() {
   const [editing, setEditing] = useState<BlogItem | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [lang, setLang] = useState<BlogLocale>("en");
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -129,6 +193,7 @@ export default function AdminBlogsPage() {
     setForm(emptyForm());
     setEditing(null);
     setStep(1);
+    setLang("en");
     setModal("create");
   };
 
@@ -161,15 +226,21 @@ export default function AdminBlogsPage() {
       quoteAuthor: item.quoteAuthor || "",
       gallery1: gallery[0] || "",
       gallery2: gallery[1] || "",
+      translations: {
+        th: toTranslation(item.translations?.th),
+        pl: toTranslation(item.translations?.pl),
+      },
       published: item.published !== false,
     });
     setStep(1);
+    setLang("en");
     setModal("edit");
   };
 
   const closeModal = () => {
     setModal(null);
     setStep(1);
+    setLang("en");
   };
 
   const validateStep = (target: 1 | 2 | 3) => {
@@ -208,17 +279,77 @@ export default function AdminBlogsPage() {
     else if (step === 2) setStep(1);
   };
 
+  const isBase = lang === "en";
+  const translations = safeTranslations(form.translations);
+
+  /** Read a translatable field for the active language. */
+  const fieldValue = (key: TranslatableField) =>
+    isBase ? form[key] : translations[lang][key];
+
+  const setFieldValue = (key: TranslatableField, value: string) => {
+    setForm((prev) => {
+      if (isBase) return { ...prev, [key]: value };
+      const current = safeTranslations(prev.translations);
+      return {
+        ...prev,
+        translations: {
+          ...current,
+          [lang]: { ...current[lang], [key]: value },
+        },
+      };
+    });
+  };
+
+  // Translated sections mirror the English section list position by position
+  const sectionsForLang: BlogBodySection[] = isBase
+    ? form.bodySections
+    : form.bodySections.map(
+        (_, i) =>
+          translations[lang].bodySections[i] || {
+            title: "",
+            content: "",
+            image: "",
+          }
+      );
+
   const updateSection = (
     index: number,
     key: keyof BlogBodySection,
     value: string
   ) => {
-    setForm((prev) => ({
-      ...prev,
-      bodySections: prev.bodySections.map((s, i) =>
-        i === index ? { ...s, [key]: value } : s
-      ),
-    }));
+    setForm((prev) => {
+      if (isBase) {
+        return {
+          ...prev,
+          bodySections: prev.bodySections.map((s, i) =>
+            i === index ? { ...s, [key]: value } : s
+          ),
+        };
+      }
+
+      const current = safeTranslations(prev.translations);
+      const padded = prev.bodySections.map(
+        (_, i) =>
+          current[lang].bodySections[i] || {
+            title: "",
+            content: "",
+            image: "",
+          }
+      );
+
+      return {
+        ...prev,
+        translations: {
+          ...current,
+          [lang]: {
+            ...current[lang],
+            bodySections: padded.map((s, i) =>
+              i === index ? { ...s, [key]: value } : s
+            ),
+          },
+        },
+      };
+    });
   };
 
   const addSection = () => {
@@ -229,10 +360,23 @@ export default function AdminBlogsPage() {
   };
 
   const removeSection = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      bodySections: prev.bodySections.filter((_, i) => i !== index),
-    }));
+    setForm((prev) => {
+      const current = safeTranslations(prev.translations);
+      return {
+        ...prev,
+        bodySections: prev.bodySections.filter((_, i) => i !== index),
+        translations: {
+          th: {
+            ...current.th,
+            bodySections: current.th.bodySections.filter((_, i) => i !== index),
+          },
+          pl: {
+            ...current.pl,
+            bodySections: current.pl.bodySections.filter((_, i) => i !== index),
+          },
+        },
+      };
+    });
   };
 
   const onSubmit = async (e: FormEvent) => {
@@ -246,6 +390,21 @@ export default function AdminBlogsPage() {
         image: (s.image || "").trim(),
       }))
       .filter((s) => s.title || s.content || s.image);
+
+    const packTranslation = (value: BlogTranslation): BlogTranslation => ({
+      title: value.title.trim(),
+      excerpt: value.excerpt.trim(),
+      category: value.category.trim(),
+      bodySections: value.bodySections.map((s) => ({
+        title: (s.title || "").trim(),
+        content: (s.content || "").trim(),
+        image: (s.image || "").trim(),
+      })),
+      highlightTitle: value.highlightTitle.trim(),
+      highlightText: value.highlightText.trim(),
+      quote: value.quote.trim(),
+      quoteAuthor: value.quoteAuthor.trim(),
+    });
 
     const payload = {
       title: form.title.trim(),
@@ -262,6 +421,10 @@ export default function AdminBlogsPage() {
       quote: form.quote.trim(),
       quoteAuthor: form.quoteAuthor.trim(),
       gallery: [form.gallery1, form.gallery2].map((s) => s.trim()).filter(Boolean),
+      translations: {
+        th: packTranslation(translations.th),
+        pl: packTranslation(translations.pl),
+      },
       published: form.published,
     };
 
@@ -275,8 +438,16 @@ export default function AdminBlogsPage() {
       }
       closeModal();
       await load();
-    } catch {
-      toast.error("Save failed");
+    } catch (err: unknown) {
+      const serverMessage = (
+        err as { response?: { data?: { message?: string } } }
+      )?.response?.data?.message;
+      const detail =
+        serverMessage || (err instanceof Error ? err.message : "");
+      toast.error("Save failed", {
+        description: detail || "Unexpected error. Please try again.",
+      });
+      console.error("[blogs] save failed", err);
     }
   };
 
@@ -288,6 +459,56 @@ export default function AdminBlogsPage() {
       await load();
     } catch {
       toast.error("Delete failed");
+    }
+  };
+
+  const onGenerateAI = async () => {
+    setAiLoading(true);
+    try {
+      const res = await generateBlogWithAI(siteId, {
+        topic: aiTopic.trim() || undefined,
+      });
+      const a = res.article;
+      setEditing(null);
+      setForm({
+        ...emptyForm(),
+        title: a.title || "",
+        category: a.category || "",
+        readTime: a.readTime || "5",
+        author: a.author || "Admin",
+        publishDate: a.publishDate || new Date().toISOString().slice(0, 10),
+        excerpt: a.excerpt || "",
+        image: a.image || "",
+        bodySections:
+          a.bodySections?.length > 0
+            ? a.bodySections.map((s) => ({
+                title: s.title || "",
+                content: s.content || "",
+                image: s.image || "",
+              }))
+            : [{ title: "", content: "", image: "" }],
+        highlightTitle: a.highlightTitle || "",
+        highlightText: a.highlightText || "",
+        quote: a.quote || "",
+        quoteAuthor: a.quoteAuthor || "",
+        gallery1: a.gallery1 || "",
+        gallery2: a.gallery2 || "",
+        translations: emptyTranslations(),
+        published: true,
+      });
+      setStep(1);
+      setLang("en");
+      setAiOpen(false);
+      setAiTopic("");
+      setModal("create");
+      toast.success("Blog draft + images generated successfully");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "AI generation failed";
+      toast.error(msg);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -336,14 +557,24 @@ export default function AdminBlogsPage() {
               </button>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#1A2332] text-white text-sm font-semibold px-4"
-          >
-            <Plus className="w-4 h-4" />
-            Create Blog
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#E2E5EA] bg-[#F8FAFC] text-[#1A2332] text-sm font-semibold px-4 hover:bg-[#F1F5F9]"
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate with AI
+            </button>
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#1A2332] text-white text-sm font-semibold px-4"
+            >
+              <Plus className="w-4 h-4" />
+              Create Blog
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -480,6 +711,33 @@ export default function AdminBlogsPage() {
               </button>
             </div>
 
+            <div className="rounded-xl border border-[#E8EAED] p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#334155]">
+                  Language
+                </span>
+                {LANGUAGES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setLang(item.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      lang === item.id
+                        ? "bg-[#1A2332] text-white"
+                        : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-[#94A3B8]">
+                {isBase
+                  ? "English is the base version. Images, dates, author and read time are shared across all languages."
+                  : "Translate the text below. Any field left blank falls back to the English version on the website."}
+              </p>
+            </div>
+
             <div className="grid grid-cols-3 gap-2 text-xs">
               {[
                 ["1. Header & Cover", "Title, author, read time & cover photo"],
@@ -533,82 +791,96 @@ export default function AdminBlogsPage() {
                   </div>
                   <div className="grid md:grid-cols-2 gap-3">
                     <label className="block text-xs font-semibold text-[#5C6370]">
-                      Article Title *
+                      Article Title {isBase ? "*" : ""}
                       <input
-                        required
-                        value={form.title}
-                        onChange={(e) =>
-                          setForm({ ...form, title: e.target.value })
-                        }
-                        placeholder="e.g. Designing Modern Luxury Kitchen Islands"
-                        className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
-                      />
-                    </label>
-                    <label className="block text-xs font-semibold text-[#5C6370]">
-                      Category / Article Type *
-                      <input
-                        required
-                        value={form.category}
-                        onChange={(e) =>
-                          setForm({ ...form, category: e.target.value })
-                        }
-                        placeholder="e.g. Design Trends, Kitchen Architecture"
-                        className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
-                      />
-                    </label>
-                  </div>
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <label className="block text-xs font-semibold text-[#5C6370]">
-                      Minutes to Read *
-                      <input
-                        required
-                        value={form.readTime}
-                        onChange={(e) =>
-                          setForm({ ...form, readTime: e.target.value })
+                        required={isBase}
+                        value={fieldValue("title")}
+                        onChange={(e) => setFieldValue("title", e.target.value)}
+                        placeholder={
+                          isBase
+                            ? "e.g. Designing Modern Luxury Kitchen Islands"
+                            : form.title || "Translate the title"
                         }
                         className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                       />
                     </label>
                     <label className="block text-xs font-semibold text-[#5C6370]">
-                      Author Name *
+                      Category / Article Type {isBase ? "*" : ""}
                       <input
-                        required
-                        value={form.author}
+                        required={isBase}
+                        value={fieldValue("category")}
                         onChange={(e) =>
-                          setForm({ ...form, author: e.target.value })
+                          setFieldValue("category", e.target.value)
                         }
-                        className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
-                      />
-                    </label>
-                    <label className="block text-xs font-semibold text-[#5C6370]">
-                      Publish Date *
-                      <input
-                        required
-                        type="date"
-                        value={form.publishDate}
-                        onChange={(e) =>
-                          setForm({ ...form, publishDate: e.target.value })
+                        placeholder={
+                          isBase
+                            ? "e.g. Design Trends, Kitchen Architecture"
+                            : form.category || "Translate the category"
                         }
                         className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                       />
                     </label>
                   </div>
+                  {isBase ? (
+                    <div className="grid md:grid-cols-3 gap-3">
+                      <label className="block text-xs font-semibold text-[#5C6370]">
+                        Minutes to Read *
+                        <input
+                          required
+                          value={form.readTime}
+                          onChange={(e) =>
+                            setForm({ ...form, readTime: e.target.value })
+                          }
+                          className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
+                        />
+                      </label>
+                      <label className="block text-xs font-semibold text-[#5C6370]">
+                        Author Name *
+                        <input
+                          required
+                          value={form.author}
+                          onChange={(e) =>
+                            setForm({ ...form, author: e.target.value })
+                          }
+                          className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
+                        />
+                      </label>
+                      <label className="block text-xs font-semibold text-[#5C6370]">
+                        Publish Date *
+                        <input
+                          required
+                          type="date"
+                          value={form.publishDate}
+                          onChange={(e) =>
+                            setForm({ ...form, publishDate: e.target.value })
+                          }
+                          className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
+                        />
+                      </label>
+                    </div>
+                  ) : null}
                   <label className="block text-xs font-semibold text-[#5C6370]">
-                    Article Summary / Lead Excerpt *
+                    Article Summary / Lead Excerpt {isBase ? "*" : ""}
                     <textarea
-                      required
+                      required={isBase}
                       rows={4}
-                      value={form.excerpt}
-                      onChange={(e) =>
-                        setForm({ ...form, excerpt: e.target.value })
+                      value={fieldValue("excerpt")}
+                      onChange={(e) => setFieldValue("excerpt", e.target.value)}
+                      placeholder={
+                        isBase
+                          ? "Write a compelling lead paragraph/summary rendered under the title..."
+                          : form.excerpt || "Translate the summary"
                       }
-                      placeholder="Write a compelling lead paragraph/summary rendered under the title..."
                       className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                     />
                   </label>
                 </div>
 
-                <div className="rounded-xl border border-[#E8EAED] p-4 space-y-3">
+                <div
+                  className={`rounded-xl border border-[#E8EAED] p-4 space-y-3 ${
+                    isBase ? "" : "hidden"
+                  }`}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wide text-[#334155]">
@@ -642,19 +914,23 @@ export default function AdminBlogsPage() {
                       Body Sections
                     </p>
                     <p className="text-xs text-[#6B7280]">
-                      Add headings, paragraphs and optional section images.
+                      {isBase
+                        ? "Add headings, paragraphs and optional section images."
+                        : "Translate each section. Sections are added and removed in English."}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={addSection}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#1A2332] text-white text-sm font-semibold px-3 py-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Section
-                  </button>
+                  {isBase ? (
+                    <button
+                      type="button"
+                      onClick={addSection}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#1A2332] text-white text-sm font-semibold px-3 py-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Section
+                    </button>
+                  ) : null}
                 </div>
-                {form.bodySections.map((section, index) => (
+                {sectionsForLang.map((section, index) => (
                   <div
                     key={index}
                     className="rounded-xl border border-[#E8EAED] p-4 space-y-3"
@@ -663,13 +939,15 @@ export default function AdminBlogsPage() {
                       <p className="text-xs font-bold text-[#334155]">
                         SECTION #{index + 1}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => removeSection(index)}
-                        className="text-xs font-semibold text-[#DC2626]"
-                      >
-                        Remove
-                      </button>
+                      {isBase ? (
+                        <button
+                          type="button"
+                          onClick={() => removeSection(index)}
+                          className="text-xs font-semibold text-[#DC2626]"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
                     </div>
                     <label className="block text-xs font-semibold text-[#5C6370]">
                       Section Heading
@@ -677,6 +955,9 @@ export default function AdminBlogsPage() {
                         value={section.title}
                         onChange={(e) =>
                           updateSection(index, "title", e.target.value)
+                        }
+                        placeholder={
+                          isBase ? "" : form.bodySections[index]?.title || ""
                         }
                         className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                       />
@@ -689,15 +970,20 @@ export default function AdminBlogsPage() {
                         onChange={(e) =>
                           updateSection(index, "content", e.target.value)
                         }
+                        placeholder={
+                          isBase ? "" : form.bodySections[index]?.content || ""
+                        }
                         className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                       />
                     </label>
-                    <MediaUpload
-                      label="Section Image (optional)"
-                      kind="image"
-                      value={section.image || ""}
-                      onChange={(v) => updateSection(index, "image", v)}
-                    />
+                    {isBase ? (
+                      <MediaUpload
+                        label="Section Image (optional)"
+                        kind="image"
+                        value={section.image || ""}
+                        onChange={(v) => updateSection(index, "image", v)}
+                      />
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -712,10 +998,11 @@ export default function AdminBlogsPage() {
                   <label className="block text-xs font-semibold text-[#5C6370]">
                     Highlight Title
                     <input
-                      value={form.highlightTitle}
+                      value={fieldValue("highlightTitle")}
                       onChange={(e) =>
-                        setForm({ ...form, highlightTitle: e.target.value })
+                        setFieldValue("highlightTitle", e.target.value)
                       }
+                      placeholder={isBase ? "" : form.highlightTitle}
                       className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                     />
                   </label>
@@ -723,10 +1010,11 @@ export default function AdminBlogsPage() {
                     Highlight Text
                     <textarea
                       rows={3}
-                      value={form.highlightText}
+                      value={fieldValue("highlightText")}
                       onChange={(e) =>
-                        setForm({ ...form, highlightText: e.target.value })
+                        setFieldValue("highlightText", e.target.value)
                       }
+                      placeholder={isBase ? "" : form.highlightText}
                       className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                     />
                   </label>
@@ -740,50 +1028,54 @@ export default function AdminBlogsPage() {
                     Quote
                     <textarea
                       rows={3}
-                      value={form.quote}
-                      onChange={(e) =>
-                        setForm({ ...form, quote: e.target.value })
-                      }
+                      value={fieldValue("quote")}
+                      onChange={(e) => setFieldValue("quote", e.target.value)}
+                      placeholder={isBase ? "" : form.quote}
                       className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                     />
                   </label>
                   <label className="block text-xs font-semibold text-[#5C6370]">
                     Quote Author
                     <input
-                      value={form.quoteAuthor}
+                      value={fieldValue("quoteAuthor")}
                       onChange={(e) =>
-                        setForm({ ...form, quoteAuthor: e.target.value })
+                        setFieldValue("quoteAuthor", e.target.value)
                       }
+                      placeholder={isBase ? "" : form.quoteAuthor}
                       className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                     />
                   </label>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-3">
-                  <MediaUpload
-                    label="Highlight Image 01"
-                    kind="image"
-                    value={form.gallery1}
-                    onChange={(v) => setForm({ ...form, gallery1: v })}
-                  />
-                  <MediaUpload
-                    label="Highlight Image 02"
-                    kind="image"
-                    value={form.gallery2}
-                    onChange={(v) => setForm({ ...form, gallery2: v })}
-                  />
-                </div>
+                {isBase ? (
+                  <>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <MediaUpload
+                        label="Highlight Image 01"
+                        kind="image"
+                        value={form.gallery1}
+                        onChange={(v) => setForm({ ...form, gallery1: v })}
+                      />
+                      <MediaUpload
+                        label="Highlight Image 02"
+                        kind="image"
+                        value={form.gallery2}
+                        onChange={(v) => setForm({ ...form, gallery2: v })}
+                      />
+                    </div>
 
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.published}
-                    onChange={(e) =>
-                      setForm({ ...form, published: e.target.checked })
-                    }
-                  />
-                  Published
-                </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.published}
+                        onChange={(e) =>
+                          setForm({ ...form, published: e.target.checked })
+                        }
+                      />
+                      Published
+                    </label>
+                  </>
+                ) : null}
               </div>
             ) : null}
 
@@ -831,6 +1123,62 @@ export default function AdminBlogsPage() {
           </form>
         </div>
       )}
+
+      {aiOpen ? (
+        <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-2xl p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-lg text-[#1A2332]">
+                  Generate with AI
+                </h3>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  Enter a topic and AI will draft a full blog article for you.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !aiLoading && setAiOpen(false)}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <label className="block text-xs font-semibold text-[#5C6370]">
+              Blog topic
+              <input
+                value={aiTopic}
+                onChange={(e) => setAiTopic(e.target.value)}
+                placeholder="e.g. L-shaped kitchens for Thai island villas"
+                className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
+                disabled={aiLoading}
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                disabled={aiLoading}
+                onClick={() => setAiOpen(false)}
+                className="rounded-lg border px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={aiLoading}
+                onClick={onGenerateAI}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] text-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              >
+                {aiLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {aiLoading ? "Generating…" : "Generate Blog"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AdminShell>
   );
 }
