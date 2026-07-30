@@ -63,7 +63,7 @@ export default function CataloguePage() {
             </div>
             <div className="p-6 sm:p-8">
               <p className="text-[11px] tracking-[0.18em] uppercase text-[#E0905A] font-semibold mb-1">
-                {t("catalogue.edition")}
+                2026 Edition
               </p>
               <h2 className="text-lg font-bold uppercase tracking-wide text-[#1A1A1A]">
                 {t("catalogue.fileTitle")}

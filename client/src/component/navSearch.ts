@@ -63,14 +63,6 @@ const pageItems: NavSearchResult[] = [
   },
 ];
 
-function toProductHref(slug: string) {
-  const clean = String(slug || "")
-    .trim()
-    .replace(/^\/+|\/+$/g, "")
-    .toLowerCase();
-  return clean ? `/products/${encodeURIComponent(clean)}` : "/products";
-}
-
 function buildSearchIndex(): NavSearchResult[] {
   const products: NavSearchResult[] = productItems.map((p) => ({
     id: `product-${p.id}`,
@@ -85,7 +77,7 @@ function buildSearchIndex(): NavSearchResult[] {
       p.color,
       ...p.features.map((f) => `${f.title} ${f.description}`),
     ].join(" "),
-    href: toProductHref(p.slug),
+    href: `/products/${p.slug}`,
     type: "Product",
   }));
 

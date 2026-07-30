@@ -1,22 +1,8 @@
 import { ContactData } from "../types/contactUs";
 
-/**
- * Contact leads must hit the Express API (same DB the admin Contacts page reads).
- * Prefer same-origin /cms-api rewrite → BACKEND_URL/api
- */
 function getApiBase() {
-  const cms =
-    process.env.NEXT_PUBLIC_CMS_API_URL?.trim() ||
-    process.env.NEXT_PUBLIC_CONTACT_API_URL?.trim();
-  if (cms) return cms.replace(/\/+$/, "") || "/cms-api";
-
-  // Browser: use Next rewrite to Express
-  if (typeof window !== "undefined") return "/cms-api";
-
-  const backend = (
-    process.env.BACKEND_URL?.trim() || "http://127.0.0.1:5000"
-  ).replace(/\/+$/, "");
-  return `${backend}/api`;
+  const raw = process.env.NEXT_PUBLIC_API_URL?.trim() || "/api";
+  return raw.replace(/\/+$/, "") || "/api";
 }
 
 async function postJson(path: string, data: ContactData) {
@@ -29,12 +15,8 @@ async function postJson(path: string, data: ContactData) {
     body: JSON.stringify(data),
   });
 
-  let result: {
-    success?: boolean;
-    message?: string;
-    data?: unknown;
-    errors?: unknown;
-  } = {};
+  let result: { success?: boolean; message?: string; data?: unknown; errors?: unknown } =
+    {};
   try {
     result = await response.json();
   } catch {
@@ -61,7 +43,7 @@ async function postJson(path: string, data: ContactData) {
   return result;
 }
 
-/** Submit contact to Express → Mongo `contacts` (admin Contacts page) */
+/** Submit contact — uses NEXT_PUBLIC_API_URL (Vercel backend) or local /api */
 export const createContact = async (data: ContactData) => {
   return postJson("/contact/post", data);
 };
