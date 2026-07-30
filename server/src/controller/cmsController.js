@@ -161,6 +161,67 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+/**
+ * Product categories, seeded once per site and then fully admin-managed.
+ * `slug` is what the public site uses in URLs (/products/:slug) and as the
+ * stable link from Product.category — never rename an existing slug, add a
+ * new category instead, or every product tagged with the old slug orphans.
+ */
+const DEFAULT_CATEGORIES = [
+  { slug: "modern", title: "Modern", sortOrder: 1 },
+  { slug: "islands", title: "Islands", sortOrder: 2 },
+  { slug: "u-shape", title: "U Shape", sortOrder: 3 },
+  { slug: "l-shape", title: "L Shape", sortOrder: 4 },
+  { slug: "straight", title: "Straight", sortOrder: 5 },
+  { slug: "t-shape", title: "T Shape", sortOrder: 6 },
+];
+
+async function ensureDefaultCategories(siteId) {
+  const existing = await Category.find({ siteId }).select("slug").lean();
+  const existingSlugs = new Set(existing.map((c) => String(c.slug || "").toLowerCase()));
+
+  const missing = DEFAULT_CATEGORIES.filter(
+    (c) => !existingSlugs.has(c.slug)
+  );
+  if (!missing.length) return;
+
+  await Category.insertMany(
+    missing.map((c) => ({
+      siteId,
+      title: c.title,
+      slug: c.slug,
+      description: "",
+      image: "",
+      icon: "",
+      sortOrder: c.sortOrder,
+    }))
+  );
+}
+
+/**
+ * One-time cleanup: earlier seed data stored Product.category as the
+ * display title ("Islands") instead of the stable slug ("islands"). This
+ * brings any already-existing documents in line with the slug-based
+ * scheme above. Safe to run on every request — becomes a no-op once
+ * nothing matches the legacy values anymore.
+ */
+const LEGACY_CATEGORY_SLUG_MAP = {
+  Modern: "modern",
+  Islands: "islands",
+  "U Shape": "u-shape",
+  "L Shape": "l-shape",
+  Straight: "straight",
+  "T Shape": "t-shape",
+};
+
+async function normalizeLegacyProductCategories(siteId) {
+  await Promise.all(
+    Object.entries(LEGACY_CATEGORY_SLUG_MAP).map(([legacy, slug]) =>
+      Product.updateMany({ siteId, category: legacy }, { $set: { category: slug } })
+    )
+  );
+}
+
 /** Website catalogue seed — keeps admin + public site in sync */
 const DEFAULT_PRODUCTS = [
   {
@@ -173,7 +234,7 @@ const DEFAULT_PRODUCTS = [
       "Obsidian Bay pairs matte dark cabinetry with warm timber undertones — a quiet, gallery-like presence designed for open-plan living and island entertaining.",
     image: "/products/Kitchen1.png",
     gallery: ["/product/product.png", "/products/Kitchen1.png", "/products/Kitchen2.png"],
-    category: "Islands",
+    category: "islands",
     featured: true,
     featureHighlights: [
       {
@@ -203,7 +264,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen2.png",
     gallery: ["/products/Kitchen2.png", "/products/Kitchen3.png", "/products/Kitchen4.png"],
-    category: "Straight",
+    category: "straight",
     featured: true,
   },
   {
@@ -216,7 +277,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen3.png",
     gallery: ["/products/Kitchen3.png", "/products/Kitchen1.png", "/products/Kitchen6.png"],
-    category: "L Shape",
+    category: "l-shape",
     featured: true,
   },
   {
@@ -229,7 +290,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen4.png",
     gallery: ["/products/Kitchen4.png", "/products/Kitchen5.png", "/products/Kitchen2.png"],
-    category: "U Shape",
+    category: "u-shape",
     featured: false,
   },
   {
@@ -242,7 +303,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen5.png",
     gallery: ["/products/Kitchen5.png", "/products/Kitchen6.png", "/products/Kitchen1.png"],
-    category: "Modern",
+    category: "modern",
     featured: true,
   },
   {
@@ -255,7 +316,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen6.png",
     gallery: ["/products/Kitchen6.png", "/products/Kitchen2.png", "/products/Kitchen3.png"],
-    category: "T Shape",
+    category: "t-shape",
     featured: false,
   },
   {
@@ -268,7 +329,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen1.png",
     gallery: ["/products/Kitchen1.png", "/products/Kitchen2.png"],
-    category: "Islands",
+    category: "islands",
     featured: false,
   },
   {
@@ -281,7 +342,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen2.png",
     gallery: ["/products/Kitchen2.png", "/products/Kitchen3.png"],
-    category: "Modern",
+    category: "modern",
     featured: true,
   },
   {
@@ -294,7 +355,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen3.png",
     gallery: ["/products/Kitchen3.png", "/products/Kitchen4.png"],
-    category: "U Shape",
+    category: "u-shape",
     featured: false,
   },
   {
@@ -307,7 +368,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen4.png",
     gallery: ["/products/Kitchen4.png", "/products/Kitchen5.png"],
-    category: "L Shape",
+    category: "l-shape",
     featured: false,
   },
   {
@@ -320,7 +381,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen5.png",
     gallery: ["/products/Kitchen5.png", "/products/Kitchen6.png"],
-    category: "Islands",
+    category: "islands",
     featured: true,
   },
   {
@@ -333,7 +394,7 @@ const DEFAULT_PRODUCTS = [
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen6.png",
     gallery: ["/products/Kitchen6.png", "/products/Kitchen1.png"],
-    category: "Straight",
+    category: "straight",
     featured: false,
   },
 ];
@@ -684,12 +745,22 @@ const resetHome = asyncHandler(async (req, res) => {
   return res.json({ success: true, home: { sections: home.sections || {} } });
 });
 
+function asCategoryTranslations(value) {
+  const v = value && typeof value === "object" ? value : {};
+  const pick = (loc) => ({
+    title: String((v[loc] && v[loc].title) || "").trim(),
+  });
+  return { th: pick("th"), pl: pick("pl") };
+}
+
 const listCategories = asyncHandler(async (req, res) => {
   const { siteId } = req.params;
   if (!assertSite(siteId)) {
     return res.status(400).json({ success: false, message: "Invalid site" });
   }
-  const items = await Category.find({ siteId }).sort({ createdAt: -1 });
+  // Seed default categories into CMS so admin + site share one list
+  await ensureDefaultCategories(siteId);
+  const items = await Category.find({ siteId }).sort({ sortOrder: 1, createdAt: 1 });
   return res.json({ success: true, items });
 });
 
@@ -698,34 +769,69 @@ const createCategory = asyncHandler(async (req, res) => {
   if (!assertSite(siteId)) {
     return res.status(400).json({ success: false, message: "Invalid site" });
   }
-  const item = await Category.create({
-    siteId,
-    title: String(req.body.title || "").trim(),
-    description: String(req.body.description || ""),
-    image: String(req.body.image || ""),
-    icon: String(req.body.icon || ""),
-  });
-  return res.status(201).json({ success: true, item });
+  const title = String(req.body.title || "").trim();
+  const slug = slugify(req.body.slug || title);
+  if (!title || !slug) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Title and slug are required" });
+  }
+  try {
+    const item = await Category.create({
+      siteId,
+      title,
+      slug,
+      description: String(req.body.description || ""),
+      image: String(req.body.image || ""),
+      icon: String(req.body.icon || ""),
+      translations: asCategoryTranslations(req.body.translations),
+      sortOrder: Number(req.body.sortOrder) || 0,
+    });
+    return res.status(201).json({ success: true, item });
+  } catch (err) {
+    if (err && err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: `A category with slug "${slug}" already exists.`,
+      });
+    }
+    throw err;
+  }
 });
 
 const updateCategory = asyncHandler(async (req, res) => {
   const { siteId, id } = req.params;
-  const item = await Category.findOneAndUpdate(
-    { _id: id, siteId },
-    {
-      $set: {
-        title: String(req.body.title || "").trim(),
-        description: String(req.body.description || ""),
-        image: String(req.body.image || ""),
-        icon: String(req.body.icon || ""),
+  const title = String(req.body.title || "").trim();
+  const slug = slugify(req.body.slug || title);
+  try {
+    const item = await Category.findOneAndUpdate(
+      { _id: id, siteId },
+      {
+        $set: {
+          title,
+          slug,
+          description: String(req.body.description || ""),
+          image: String(req.body.image || ""),
+          icon: String(req.body.icon || ""),
+          translations: asCategoryTranslations(req.body.translations),
+          sortOrder: Number(req.body.sortOrder) || 0,
+        },
       },
-    },
-    { new: true }
-  );
-  if (!item) {
-    return res.status(404).json({ success: false, message: "Category not found" });
+      { new: true }
+    );
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Category not found" });
+    }
+    return res.json({ success: true, item });
+  } catch (err) {
+    if (err && err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: `A category with slug "${slug}" already exists.`,
+      });
+    }
+    throw err;
   }
-  return res.json({ success: true, item });
 });
 
 const deleteCategory = asyncHandler(async (req, res) => {
@@ -744,6 +850,7 @@ const listProducts = asyncHandler(async (req, res) => {
   }
   // Seed website catalogue products into CMS so admin + site share one list
   await ensureDefaultProducts(siteId);
+  await normalizeLegacyProductCategories(siteId);
   const items = await Product.find({ siteId }).sort({ createdAt: -1 });
   return res.json({ success: true, items });
 });

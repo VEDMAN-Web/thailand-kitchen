@@ -66,7 +66,7 @@ export const filterOptions = {
 
 export const sortOptions = ["Sort By", "Newest", "Name A–Z", "Name Z–A"];
 
-const IMG = [
+export const productFallbackImages = [
   "/products/Kitchen1.png",
   "/products/Kitchen2.png",
   "/products/Kitchen3.png",
@@ -74,6 +74,7 @@ const IMG = [
   "/products/Kitchen5.png",
   "/products/Kitchen6.png",
 ];
+const IMG = productFallbackImages;
 
 const HERO_FALLBACK = "/product/product.png";
 
@@ -315,4 +316,85 @@ export const PRODUCTS_PER_PAGE = 6;
 
 export function getProductBySlug(slug: string): ProductItem | undefined {
   return productItems.find((item) => item.slug === slug);
+}
+
+/** slug <-> layout-type mapping, kept in sync with the CMS default categories */
+const CATEGORY_SLUG_TO_LAYOUT: Record<string, ProductLayout> = {
+  modern: "Modern",
+  islands: "Islands",
+  "u-shape": "U Shape",
+  "l-shape": "L Shape",
+  straight: "Straight",
+  "t-shape": "T Shape",
+};
+
+export function layoutFromCategorySlug(slug: string): ProductLayout {
+  return CATEGORY_SLUG_TO_LAYOUT[slug] ?? "Modern";
+}
+
+export function categorySlugForLayout(layout: ProductLayout): string {
+  const entry = Object.entries(CATEGORY_SLUG_TO_LAYOUT).find(
+    ([, value]) => value === layout
+  );
+  return entry ? entry[0] : layout.toLowerCase().replace(/\s+/g, "-");
+}
+
+/**
+ * Adapts a CMS `Product` document (server/src/model/cmsModels.js) into the
+ * richer `ProductItem` shape the existing product components expect.
+ * CMS products won't have every presentation-only field (headline, gallery
+ * captions, etc.) authored yet, so we fill sensible defaults rather than
+ * leaving the UI broken for a product someone just added in the admin panel.
+ */
+export function cmsProductToItem(p: {
+  slug: string;
+  title: string;
+  subtitle: string;
+  productType: string;
+  sectionTag: string;
+  description: string;
+  image: string;
+  gallery: string[];
+  category: string;
+  featured: boolean;
+  featureHighlights: ProductFeature[];
+}): ProductItem {
+  const layoutType = layoutFromCategorySlug(p.category);
+  const gallerySource = p.gallery.length ? p.gallery : [p.image];
+
+  return {
+    id: 0,
+    slug: p.slug,
+    name: p.title,
+    layout: p.subtitle || `${layoutType} layout`,
+    layoutType,
+    finish: "",
+    material: "",
+    style: p.productType || layoutType,
+    color: "",
+    image: p.image || IMG[0],
+    bestSeller: p.featured,
+    heroImages: [
+      p.image || IMG[0],
+      gallerySource[0] || IMG[1],
+      gallerySource[1] || IMG[2],
+    ],
+    tag: p.sectionTag || "Core Component",
+    headline: p.subtitle || p.title,
+    description:
+      p.description ||
+      "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
+    gallery: gallerySource
+      .slice(0, 5)
+      .map((image, i) => ({
+        image: image || IMG[i % IMG.length],
+        caption: `${p.title.split(" ")[0]} Series Open...`,
+      })),
+    features: p.featureHighlights.length ? p.featureHighlights : defaultFeatures,
+    detailImages: [
+      gallerySource[2] || IMG[4],
+      gallerySource[3] || IMG[2],
+    ],
+    contactImage: gallerySource[4] || IMG[3],
+  };
 }

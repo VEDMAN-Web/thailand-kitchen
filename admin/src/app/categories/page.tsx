@@ -21,7 +21,13 @@ export default function AdminCategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<CategoryItem | null>(null);
-  const [form, setForm] = useState({ title: "", description: "", image: "" });
+  const [form, setForm] = useState({
+    title: "",
+    slug: "",
+    description: "",
+    image: "",
+    sortOrder: 0,
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,7 +56,13 @@ export default function AdminCategoriesPage() {
   }, [items, query]);
 
   const openCreate = () => {
-    setForm({ title: "", description: "", image: "/products/Kitchen2.png" });
+    setForm({
+      title: "",
+      slug: "",
+      description: "",
+      image: "/products/Kitchen2.png",
+      sortOrder: items.length,
+    });
     setEditing(null);
     setModal("create");
   };
@@ -59,8 +71,10 @@ export default function AdminCategoriesPage() {
     setEditing(item);
     setForm({
       title: item.title,
+      slug: item.slug || "",
       description: item.description,
       image: item.image,
+      sortOrder: item.sortOrder ?? 0,
     });
     setModal("edit");
   };
@@ -158,6 +172,7 @@ export default function AdminCategoriesPage() {
               </div>
               <div className="p-4">
                 <h3 className="font-bold text-[#1A2332]">{item.title}</h3>
+                <p className="mt-0.5 text-xs text-[#9CA3AF]">/{item.slug}</p>
                 <p className="mt-1.5 text-sm text-[#6B7280] line-clamp-2">
                   {item.description}
                 </p>
@@ -187,6 +202,31 @@ export default function AdminCategoriesPage() {
                 required
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
+                className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#5C6370] mb-1">
+              URL slug
+              <input
+                value={form.slug}
+                onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                placeholder="auto-generated from title if left blank"
+                className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm"
+              />
+              <span className="mt-1 block text-[11px] font-normal text-[#9CA3AF]">
+                Used in the product page URL (/products/{form.slug || "…"}).
+                Changing this after products are tagged will break existing
+                links — add a new category instead of renaming an old slug.
+              </span>
+            </label>
+            <label className="block text-xs font-semibold text-[#5C6370] mb-1">
+              Sort order
+              <input
+                type="number"
+                value={form.sortOrder}
+                onChange={(e) =>
+                  setForm({ ...form, sortOrder: Number(e.target.value) || 0 })
+                }
                 className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm"
               />
             </label>

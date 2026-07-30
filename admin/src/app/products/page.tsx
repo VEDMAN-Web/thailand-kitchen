@@ -18,8 +18,10 @@ import { useAdminAuth } from "@/lib/AdminAuthContext";
 import {
   createProduct,
   deleteProduct,
+  listCategories,
   listProducts,
   updateProduct,
+  type CategoryItem,
   type ProductItem,
 } from "@/services/adminAPI";
 import MediaUpload from "@/components/MediaUpload";
@@ -51,6 +53,7 @@ const empty = {
 export default function AdminProductsPage() {
   const { siteId } = useAdminAuth();
   const [items, setItems] = useState<ProductItem[]>([]);
+  const [cmsCategories, setCmsCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<ProductItem | null>(null);
@@ -71,9 +74,19 @@ export default function AdminProductsPage() {
     }
   }, [siteId]);
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const res = await listCategories(siteId);
+      setCmsCategories(res.items || []);
+    } catch {
+      // Non-fatal — the category dropdown just falls back to an empty list.
+    }
+  }, [siteId]);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadCategories();
+  }, [load, loadCategories]);
 
   const openCreate = () => {
     setForm(empty);
@@ -403,12 +416,25 @@ export default function AdminProductsPage() {
                     </label>
                     <label className="block text-xs font-semibold text-[#5C6370]">
                       Category *
-                      <input
+                      <select
                         required
                         value={form.category}
                         onChange={(e) => setForm({ ...form, category: e.target.value })}
-                        className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
-                      />
+                        className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal bg-white"
+                      >
+                        <option value="" disabled>
+                          Select a category…
+                        </option>
+                        {cmsCategories.map((c) => (
+                          <option key={c._id} value={c.slug}>
+                            {c.title}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="mt-1 block text-[11px] font-normal text-[#9CA3AF]">
+                        Determines which /products/:category page this item
+                        appears on. Manage the list under Categories.
+                      </span>
                     </label>
                   </div>
                 </div>

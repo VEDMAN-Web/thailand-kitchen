@@ -18,16 +18,30 @@ const homePageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/** Optional per-locale title override. Empty falls back to the base `title`. */
+const categoryTranslationSchema = new mongoose.Schema(
+  { title: { type: String, default: "" } },
+  { _id: false }
+);
+
 const categorySchema = new mongoose.Schema(
   {
     siteId: { type: String, enum: SITE_IDS, required: true, index: true },
     title: { type: String, required: true, trim: true },
+    slug: { type: String, required: true, trim: true, lowercase: true },
     description: { type: String, default: "" },
     image: { type: String, default: "" },
     icon: { type: String, default: "" },
+    translations: {
+      th: { type: categoryTranslationSchema, default: () => ({}) },
+      pl: { type: categoryTranslationSchema, default: () => ({}) },
+    },
+    sortOrder: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
+
+categorySchema.index({ siteId: 1, slug: 1 }, { unique: true });
 
 const productSchema = new mongoose.Schema(
   {

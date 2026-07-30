@@ -1,100 +1,48 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
 import ProductCard from "./ProductCard";
-import {
-  productItems,
-  productFilterTabs,
-  PRODUCTS_PER_PAGE,
-  type ProductFilterTab,
-  type ProductLayout,
-} from "./productData";
+import { PRODUCTS_PER_PAGE, type ProductItem } from "./productData";
 import { useTranslation } from "../../i18n/LanguageProvider";
+import type { ProductsTab } from "../../lib/productsCatalog";
 
-function tabToSlug(tab: ProductFilterTab) {
-  return tab.toLowerCase().replace(/\s+/g, "-");
+interface Props {
+  tabs: ProductsTab[];
+  activeSlug: string;
+  products: ProductItem[];
 }
 
-function tabFromQuery(value: string | null): ProductFilterTab | null {
-  if (!value) return null;
-  const normalized = value.toLowerCase().replace(/[_\s]+/g, "-");
-  if (normalized === "best-seller" || normalized === "bestseller") {
-    return "Best Seller";
-  }
-  const match = productFilterTabs.find(
-    (tab) => tabToSlug(tab) === normalized
-  );
-  return match ?? null;
-}
-
-export default function ProductsListSection() {
+export default function ProductsListSection({ tabs, activeSlug, products }: Props) {
   const { t } = useTranslation();
-  const searchParams = useSearchParams();
-  const [layout, setLayout] = useState<ProductFilterTab>("Modern");
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    const fromQuery =
-      tabFromQuery(searchParams.get("tab")) ||
-      tabFromQuery(searchParams.get("filter"));
-    if (fromQuery) {
-      setLayout(fromQuery);
-      setPage(1);
-    }
-    if (fromQuery === "Best Seller" || searchParams.get("tab") === "best-seller") {
-      requestAnimationFrame(() => {
-        document
-          .getElementById("best-seller")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-  }, [searchParams]);
-
-  const filtered = useMemo(() => {
-    let list = [...productItems];
-
-    if (layout === "Best Seller") {
-      list = list.filter((item) => item.bestSeller);
-    } else if (layout !== "Modern") {
-      list = list.filter((item) => item.layoutType === (layout as ProductLayout));
-    }
-
-    return list;
-  }, [layout]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PRODUCTS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
-  const pageItems = filtered.slice(
+  const pageItems = products.slice(
     (currentPage - 1) * PRODUCTS_PER_PAGE,
     currentPage * PRODUCTS_PER_PAGE
   );
 
   return (
     <section id="best-seller" className="pb-16 lg:pb-24 pt-10 lg:pt-12 scroll-mt-28">
-      {/* Layout tabs + Best Seller */}
+      {/* Layout tabs + Best Seller — real links, each a distinct crawlable page */}
       <div className="flex flex-wrap gap-3">
-        {productFilterTabs.map((item) => {
-          const isActive = layout === item;
+        {tabs.map((tab) => {
+          const isActive = tab.slug === activeSlug;
+          const href = tab.slug === "modern" ? "/products" : `/products/${tab.slug}`;
           return (
-            <button
-              key={item}
-              type="button"
-              onClick={() => {
-                setLayout(item);
-                setPage(1);
-                const url = new URL(window.location.href);
-                url.searchParams.set("tab", tabToSlug(item));
-                window.history.replaceState({}, "", url.toString());
-              }}
+            <Link
+              key={tab.slug}
+              href={href}
               className={`px-5 py-2.5 rounded-full text-sm font-medium transition ${
                 isActive
                   ? "bg-[#1A1A1A] text-white"
                   : "bg-[#EDE8E1] text-[#1A1A1A] hover:bg-[#E5DFD6]"
               }`}
             >
-              {item}
-            </button>
+              {tab.label}
+            </Link>
           );
         })}
       </div>
@@ -102,7 +50,7 @@ export default function ProductsListSection() {
       {/* Count */}
       <div className="mt-8">
         <p className="text-sm text-[#1A1A1A] font-medium">
-          {t("products.count", { count: filtered.length })}
+          {t("products.count", { count: products.length })}
         </p>
       </div>
 
@@ -110,7 +58,7 @@ export default function ProductsListSection() {
       {pageItems.length > 0 ? (
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {pageItems.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product.slug} product={product} />
           ))}
         </div>
       ) : (

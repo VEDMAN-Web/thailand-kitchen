@@ -68,9 +68,11 @@ export async function resetHome(siteId: SiteId) {
 export type CategoryItem = {
   _id: string;
   title: string;
+  slug: string;
   description: string;
   image: string;
   icon?: string;
+  sortOrder?: number;
 };
 
 export async function listCategories(siteId: SiteId) {
@@ -80,7 +82,7 @@ export async function listCategories(siteId: SiteId) {
 
 export async function createCategory(
   siteId: SiteId,
-  body: { title: string; description?: string; image?: string }
+  body: { title: string; slug?: string; description?: string; image?: string; sortOrder?: number }
 ) {
   const { data } = await adminApi.post(`/cms/${siteId}/categories`, body);
   return data;
@@ -89,7 +91,7 @@ export async function createCategory(
 export async function updateCategory(
   siteId: SiteId,
   id: string,
-  body: { title: string; description?: string; image?: string }
+  body: { title: string; slug?: string; description?: string; image?: string; sortOrder?: number }
 ) {
   const { data } = await adminApi.put(`/cms/${siteId}/categories/${id}`, body);
   return data;
