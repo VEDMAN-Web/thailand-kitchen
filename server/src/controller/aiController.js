@@ -66,15 +66,22 @@ function pickStockImages(topic, sectionCount) {
 }
 
 /** Local draft writer when OpenAI is unavailable (quota / network) */
-function buildFallbackArticle(topic) {
-  const clean = titleCase(topic) || "Modern Kitchen Design in Thailand";
+function buildFallbackArticle(topic, brand = "Thailand Kitchen") {
+  const varsovia = brand === "Varsovia Design";
+  const clean =
+    titleCase(topic) ||
+    (varsovia
+      ? "Timeless Premium Kitchen Design"
+      : "Modern Kitchen Design in Thailand");
   const lower = clean.toLowerCase();
   return {
     title: clean,
     category: "Kitchen Design Trends",
     readTime: "6",
-    author: "Thailand Kitchen",
-    excerpt: `${clean} brings comfort, storage, and style together for Thai homes. In this article we explore practical layout ideas, materials that last in humid climates, and finishing details that make everyday cooking feel effortless.`,
+    author: brand,
+    excerpt: varsovia
+      ? `${clean} brings comfort, storage, and refined style together. In this article we explore practical layouts, enduring materials, and finishing details that make everyday living feel effortless.`
+      : `${clean} brings comfort, storage, and style together for Thai homes. In this article we explore practical layout ideas, materials that last in humid climates, and finishing details that make everyday cooking feel effortless.`,
     bodySections: [
       {
         title: `What “${clean}” really means at home`,
@@ -87,9 +94,12 @@ function buildFallbackArticle(topic) {
         image: "",
       },
       {
-        title: "Materials and finishes for Thailand",
-        content:
-          "Choose sealed timber, quality laminates, quartz or porcelain worktops, and metal details that handle heat and humidity. Layer warm lighting, keep the colour palette calm, and let one hero surface—stone, wood, or brass—carry the personality of the room.",
+        title: varsovia
+          ? "Materials and finishes that endure"
+          : "Materials and finishes for Thailand",
+        content: varsovia
+          ? "Choose quality timber, refined laminates, quartz or porcelain worktops, and durable metal details. Layer warm lighting, keep the colour palette calm, and let one hero surface—stone, wood, or brass—carry the personality of the room."
+          : "Choose sealed timber, quality laminates, quartz or porcelain worktops, and metal details that handle heat and humidity. Layer warm lighting, keep the colour palette calm, and let one hero surface—stone, wood, or brass—carry the personality of the room.",
         image: "",
       },
     ],
@@ -97,11 +107,16 @@ function buildFallbackArticle(topic) {
     highlightText: `When you design around ${lower}, prioritise how your family moves, cooks, and gathers—beauty follows a layout that already works.`,
     quote:
       "The most beautiful kitchen is the one that quietly fits the way you live every day.",
-    quoteAuthor: "Thailand Kitchen Design Studio",
+    quoteAuthor: `${brand} Design Studio`,
   };
 }
 
-function toArticleResponse(parsed, source, topic) {
+function toArticleResponse(
+  parsed,
+  source,
+  topic,
+  { brand = "Thailand Kitchen", attachStockImages = true } = {}
+) {
   const rawSections = Array.isArray(parsed.bodySections)
     ? parsed.bodySections
         .map((s) => ({
@@ -122,10 +137,9 @@ function toArticleResponse(parsed, source, topic) {
         },
       ];
 
-  const stock = pickStockImages(
-    topic || parsed.title || "kitchen",
-    bodySections.length
-  );
+  const stock = attachStockImages
+    ? pickStockImages(topic || parsed.title || "kitchen", bodySections.length)
+    : { cover: "", sections: [], gallery1: "", gallery2: "" };
 
   const withImages = bodySections.map((s, i) => ({
     ...s,
@@ -139,7 +153,7 @@ function toArticleResponse(parsed, source, topic) {
       title: String(parsed.title || "").trim(),
       category: String(parsed.category || "Kitchen Design Trends").trim(),
       readTime: String(parsed.readTime || "5").replace(/[^\d]/g, "") || "5",
-      author: String(parsed.author || "Thailand Kitchen").trim(),
+      author: String(parsed.author || brand).trim(),
       excerpt: String(parsed.excerpt || "").trim(),
       bodySections: withImages,
       highlightTitle: String(parsed.highlightTitle || "").trim(),
@@ -168,19 +182,32 @@ function isQuotaOrBillingError(message) {
 
 const generateBlog = asyncHandler(async (req, res) => {
   const topic = String(req.body.topic || "").trim();
+  const isVarsovia = req.params.siteId === "varsovia-kitchen";
+  const brand = isVarsovia ? "Varsovia Design" : "Thailand Kitchen";
+  const responseOptions = {
+    brand,
+    attachStockImages: !isVarsovia,
+  };
   const promptTopic =
     topic ||
-    "modern modular kitchen design trends in Thailand for luxury island homes";
+    (isVarsovia
+      ? "timeless premium modular kitchen and interior design trends"
+      : "modern modular kitchen design trends in Thailand for luxury island homes");
 
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     console.warn("[generate-ai] OPENAI_API_KEY missing — using local draft");
     return res.json(
-      toArticleResponse(buildFallbackArticle(promptTopic), "openai", promptTopic)
+      toArticleResponse(
+        buildFallbackArticle(promptTopic, brand),
+        "fallback",
+        promptTopic,
+        responseOptions
+      )
     );
   }
 
-  const system = `You are a professional kitchen design blog writer for Thailand Kitchens.
+  const system = `You are a professional kitchen and interior design blog writer for ${brand}.
 Return ONLY valid JSON (no markdown) with this exact shape:
 {
   "title": "string",
@@ -196,7 +223,7 @@ Return ONLY valid JSON (no markdown) with this exact shape:
   "quote": "string",
   "quoteAuthor": "string"
 }
-Write in polished English. Keep bodySections length 2 or 3. Leave image fields empty — images are attached by the server.`;
+Write in polished English. Keep bodySections length 2 or 3. Leave image fields empty.`;
 
   const user = `Create a complete blog article about: ${promptTopic}`;
 
@@ -227,14 +254,17 @@ Write in polished English. Keep bodySections length 2 or 3. Leave image fields e
       console.warn("[generate-ai] invalid OpenAI JSON — using local draft");
       return res.json(
         toArticleResponse(
-          buildFallbackArticle(promptTopic),
-          "openai",
-          promptTopic
+          buildFallbackArticle(promptTopic, brand),
+          "fallback",
+          promptTopic,
+          responseOptions
         )
       );
     }
 
-    return res.json(toArticleResponse(parsed, "openai", promptTopic));
+    return res.json(
+      toArticleResponse(parsed, "openai", promptTopic, responseOptions)
+    );
   } catch (err) {
     const msg =
       err?.response?.data?.error?.message ||
@@ -247,7 +277,12 @@ Write in polished English. Keep bodySections length 2 or 3. Leave image fields e
       "— using local draft"
     );
     return res.json(
-      toArticleResponse(buildFallbackArticle(promptTopic), "openai", promptTopic)
+      toArticleResponse(
+        buildFallbackArticle(promptTopic, brand),
+        "fallback",
+        promptTopic,
+        responseOptions
+      )
     );
   }
 });
