@@ -14,11 +14,6 @@ const contactLabelKeys: Record<string, TranslationKey> = {
   "Call Us": "contact.callUs",
 };
 
-const locationTitleKeys: Record<number, TranslationKey> = {
-  1: "contact.location.pattaya",
-  2: "contact.location.samui",
-};
-
 function MapPinIcon() {
   return (
     <svg

@@ -6,23 +6,12 @@ import { useTranslation } from "../../i18n/LanguageProvider";
 import type { TranslationKey } from "../../i18n/translations";
 
 interface Props {
-  item: FaqItemType & { question?: string; answer?: string };
+  item: FaqItemType;
 }
 
 export default function FaqItem({ item }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-
-  const question =
-    item.question ||
-    (typeof item.id === "number"
-      ? t(`faq.q${item.id}` as TranslationKey)
-      : "");
-  const answer =
-    item.answer ||
-    (typeof item.id === "number"
-      ? t(`faq.a${item.id}` as TranslationKey)
-      : "");
 
   return (
     <div className="border-b border-[#E5DED4]">
@@ -33,7 +22,7 @@ export default function FaqItem({ item }: Props) {
         aria-expanded={open}
       >
         <span className="text-base sm:text-lg font-semibold text-[#1A1A1A] leading-7">
-          {question}
+          {t(`faq.q${item.id}` as TranslationKey)}
         </span>
 
         <span
@@ -51,7 +40,7 @@ export default function FaqItem({ item }: Props) {
         }`}
       >
         <p className="text-[#6B6B6B] text-sm sm:text-[15px] leading-7 max-w-3xl pr-12">
-          {answer}
+          {t(`faq.a${item.id}` as TranslationKey)}
         </p>
       </div>
     </div>

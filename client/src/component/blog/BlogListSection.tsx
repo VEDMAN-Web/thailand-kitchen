@@ -4,26 +4,17 @@ import { useState } from "react";
 import BlogFilters from "./BlogFilters";
 import BlogFeaturedCard from "./BlogFeaturedCard";
 import BlogCard from "./BlogCard";
-import { BlogCategory, type BlogPost } from "./blogData";
+import { blogPosts, BlogCategory } from "./blogData";
 import { useTranslation } from "../../i18n/LanguageProvider";
 
-export default function BlogListSection({
-  initialPosts,
-}: {
-  initialPosts: BlogPost[];
-}) {
+export default function BlogListSection() {
   const { t } = useTranslation();
   const [active, setActive] = useState<BlogCategory>("All");
-  const [posts] = useState<BlogPost[]>(initialPosts);
 
   const filtered =
     active === "All"
-      ? posts
-      : posts.filter(
-          (post) =>
-            post.filter === active ||
-            post.category.toLowerCase() === active.toLowerCase()
-        );
+      ? blogPosts
+      : blogPosts.filter((post) => post.filter === active);
 
   const featured = filtered.filter((post) => post.featured);
   const gridPosts = filtered.filter((post) => !post.featured);
@@ -45,7 +36,9 @@ export default function BlogListSection({
           ))}
         </div>
       ) : (
-        <p className="mt-16 text-left text-[#6B6B6B]">{t("blog.empty")}</p>
+        <p className="mt-16 text-left text-[#6B6B6B]">
+          {t("blog.empty")}
+        </p>
       )}
     </section>
   );

@@ -1,32 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "../i18n/LanguageProvider";
 import type { TranslationKey } from "../i18n/translations";
-import { useCmsSection } from "../lib/CmsHomeContext";
 
-const defaultStats = [
-  {
-    titleKey: "home.stats.years" as TranslationKey,
-    from: 1,
-    to: 15,
-    suffix: "+",
-    label: "",
-  },
-  {
-    titleKey: "home.stats.cities" as TranslationKey,
-    from: 1,
-    to: 12,
-    suffix: "",
-    label: "",
-  },
-  {
-    titleKey: "home.stats.kitchens" as TranslationKey,
-    from: 100,
-    to: 800,
-    suffix: "+",
-    label: "",
-  },
+const stats = [
+  { titleKey: "home.stats.years" as TranslationKey, from: 1, to: 15, suffix: "+" },
+  { titleKey: "home.stats.cities" as TranslationKey, from: 1, to: 12, suffix: "" },
+  { titleKey: "home.stats.kitchens" as TranslationKey, from: 100, to: 800, suffix: "+" },
 ];
 
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
@@ -49,6 +30,7 @@ function CountValue({
   useEffect(() => {
     if (!active) return;
 
+    // Respect users who ask for reduced motion — jump straight to the end.
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -81,31 +63,9 @@ function CountValue({
 }
 
 export default function StatsSection() {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const sectionRef = useRef<HTMLElement | null>(null);
   const [active, setActive] = useState(false);
-  const cmsStats = useCmsSection<{
-    items?: { label?: string; value?: string; suffix?: string }[];
-  }>("statistics");
-
-  const stats = useMemo(() => {
-    const items = cmsStats?.items?.filter((i) => i?.label || i?.value) || [];
-    if (!items.length) return defaultStats;
-
-    return items.map((item, index) => {
-      const numeric = parseInt(String(item.value || "").replace(/[^\d]/g, ""), 10);
-      const to = Number.isFinite(numeric) ? numeric : 0;
-      return {
-        titleKey:
-          defaultStats[index]?.titleKey ||
-          ("home.stats.years" as TranslationKey),
-        from: Math.max(0, Math.floor(to * 0.1)),
-        to,
-        suffix: item.suffix || "",
-        label: item.label || "",
-      };
-    });
-  }, [cmsStats]);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -133,15 +93,17 @@ export default function StatsSection() {
       cleanup();
     };
 
-    const onScroll = () => {
+    function onScroll() {
       if (isVisible()) fire();
-    };
+    }
 
+    // Already on screen at mount (hard refresh mid-page, short viewport).
     if (isVisible()) {
       fire();
       return;
     }
 
+    // No IntersectionObserver support → just show the final numbers.
     if (typeof IntersectionObserver === "undefined") {
       fire();
       return;
@@ -155,6 +117,7 @@ export default function StatsSection() {
     );
     io.observe(el);
 
+    // Safety net for late layout shifts (fonts/video resizing the hero).
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
 
@@ -167,7 +130,7 @@ export default function StatsSection() {
         <div className="flex flex-col sm:flex-row items-stretch">
           {stats.map((item, index) => (
             <div
-              key={`${item.label || item.titleKey}-${index}`}
+              key={item.titleKey}
               className={`flex-1 text-center py-5 sm:py-0 px-4 sm:px-8 ${
                 index < stats.length - 1
                   ? "border-b sm:border-b-0 sm:border-r border-white/15"
@@ -183,7 +146,7 @@ export default function StatsSection() {
                 />
               </p>
               <p className="mt-2 text-sm md:text-base text-white/55">
-                {locale === "EN" && item.label ? item.label : t(item.titleKey)}
+                {t(item.titleKey)}
               </p>
             </div>
           ))}
