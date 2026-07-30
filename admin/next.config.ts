@@ -14,6 +14,8 @@ const extraDevOrigins = (process.env.ALLOWED_DEV_ORIGINS || "")
   .filter(Boolean);
 
 const nextConfig: NextConfig = {
+  // Served from thailandkitchens.com/tomazs-admin via a rewrite on the client app
+  basePath: "/tomazs-admin",
   turbopack: {
     root: rootDir,
   },
