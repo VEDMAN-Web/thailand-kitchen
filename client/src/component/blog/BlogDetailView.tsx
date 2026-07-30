@@ -7,20 +7,27 @@ import { BlogPost, getRelatedPosts } from "./blogData";
 import BlogCard from "./BlogCard";
 import Footer from "../Footer/footer";
 import { useTranslation } from "../../i18n/LanguageProvider";
+import {
+  blogCategoryLabel,
+  formatBlogDate,
+  formatReadTime,
+  localizePost,
+} from "./blogI18n";
 
 interface Props {
   post: BlogPost;
 }
 
 const shareLinks = [
-  { icon: "/footer/facebook.png", label: "Facebook", href: "#" },
+  { icon: "/footer/facebook.png", label: "Facebook", href: "https://www.facebook.com/ThailandKitchens/" },
   { icon: "/footer/instagram.png", label: "Instagram", href: "#" },
   { icon: "/footer/x.png", label: "X", href: "#" },
   { icon: "/footer/whatsapp.png", label: "WhatsApp", href: "#" },
 ];
 
-export default function BlogDetailView({ post }: Props) {
-  const { t } = useTranslation();
+export default function BlogDetailView({ post: rawPost }: Props) {
+  const { t, locale } = useTranslation();
+  const post = localizePost(rawPost, locale);
   const related = getRelatedPosts(post.slug, 2);
   const gallery = post.gallery ?? [post.image, post.image];
 
@@ -41,15 +48,15 @@ export default function BlogDetailView({ post }: Props) {
                   {`< ${t("blog.detail.breadcrumb")}`}
                 </Link>
                 <span className="mx-2">/</span>
-                <span>{post.category}</span>
+                <span>{blogCategoryLabel(post.category, t)}</span>
               </p>
 
               <p className="text-[#E0905A] text-xs tracking-[0.22em] uppercase font-semibold mb-3">
-                {post.category}
+                {blogCategoryLabel(post.category, t)}
               </p>
 
               <p className="text-xs tracking-[0.14em] uppercase text-[#9A9A9A] mb-5">
-                {post.date} · {post.readTime}
+                {formatBlogDate(post, locale)} · {formatReadTime(post.readTime, t)}
               </p>
 
               <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-[#1A1A1A] leading-tight">

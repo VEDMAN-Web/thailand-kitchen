@@ -12,11 +12,22 @@ const COOKIE = "tk_catalog_access";
 
 async function findPdfFile(preferredName: string) {
   const safeName = path.basename(preferredName);
+  // Scope FS roots so Turbopack does not NFT-trace the whole project
+  const privateCatalogues = path.join(
+    /*turbopackIgnore: true*/ process.cwd(),
+    "private",
+    "catalogues"
+  );
+  const publicCatlog = path.join(
+    /*turbopackIgnore: true*/ process.cwd(),
+    "public",
+    "catlog"
+  );
   const candidates = [
-    path.join(process.cwd(), "private", "catalogues", safeName),
-    path.join(process.cwd(), "public", "catlog", safeName),
-    path.join(process.cwd(), "public", "catlog", "catalogue.pdf"),
-    path.join(process.cwd(), "public", "catlog", "catalog.pdf"),
+    path.join(privateCatalogues, safeName),
+    path.join(publicCatlog, safeName),
+    path.join(publicCatlog, "catalogue.pdf"),
+    path.join(publicCatlog, "catalog.pdf"),
   ];
 
   for (const filePath of candidates) {
@@ -28,10 +39,7 @@ async function findPdfFile(preferredName: string) {
     }
   }
 
-  for (const dir of [
-    path.join(process.cwd(), "private", "catalogues"),
-    path.join(process.cwd(), "public", "catlog"),
-  ]) {
+  for (const dir of [privateCatalogues, publicCatlog]) {
     try {
       const files = await readdir(dir);
       const pdf = files.find((f) => f.toLowerCase().endsWith(".pdf"));
