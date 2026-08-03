@@ -232,6 +232,26 @@ export async function generateBlogWithAI(
   };
 }
 
+export async function generateBlogImageWithAI(
+  siteId: SiteId,
+  body: { topic?: string; title?: string } = {}
+) {
+  const { data } = await adminApi.post(
+    `/cms/${siteId}/blogs/generate-ai-image`,
+    body,
+    { timeout: 130000 }
+  );
+  return data as {
+    success: boolean;
+    source?: "openai" | "gemini";
+    image: string;
+    storage?: string;
+    model?: string;
+    prompt?: string;
+    message?: string;
+  };
+}
+
 export async function updateBlog(siteId: SiteId, id: string, body: Partial<BlogItem>) {
   const { data } = await adminApi.put(`/cms/${siteId}/blogs/${id}`, body);
   return data;

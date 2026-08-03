@@ -7,6 +7,11 @@ import { uploadMedia } from "@/services/adminAPI";
 
 type Kind = "image" | "icon" | "pdf" | "any";
 
+type UploadResult = {
+  success?: boolean;
+  file?: { url?: string };
+};
+
 export default function MediaUpload({
   label,
   value,
@@ -14,6 +19,7 @@ export default function MediaUpload({
   kind = "image",
   accept,
   hint,
+  uploadFile,
 }: {
   label: string;
   value: string;
@@ -21,6 +27,8 @@ export default function MediaUpload({
   kind?: Kind;
   accept?: string;
   hint?: string;
+  /** Override default Thailand /upload (e.g. Varsovia public media). */
+  uploadFile?: (file: File, kind: Kind) => Promise<UploadResult>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -36,7 +44,9 @@ export default function MediaUpload({
     if (!file) return;
     setUploading(true);
     try {
-      const res = await uploadMedia(file, kind);
+      const res = uploadFile
+        ? await uploadFile(file, kind)
+        : await uploadMedia(file, kind);
       if (!res?.file?.url) throw new Error("No URL returned");
       onChange(res.file.url);
       toast.success("Uploaded");
@@ -79,7 +89,7 @@ export default function MediaUpload({
           type="file"
           className="hidden"
           accept={accept || defaultAccept}
-          onChange={(e) => onFile(e.target.files?.[0])}
+          onChange={(e) => void onFile(e.target.files?.[0])}
         />
       </div>
       {hint ? <p className="mt-1 text-[11px] text-[#9CA3AF]">{hint}</p> : null}

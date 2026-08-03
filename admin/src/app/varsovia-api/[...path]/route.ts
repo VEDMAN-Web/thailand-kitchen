@@ -16,6 +16,7 @@ const ALLOWED_RESOURCES = new Set([
   "showrooms",
   "contacts",
   "health",
+  "media",
 ]);
 
 function apiBase() {
@@ -56,16 +57,13 @@ async function proxy(
   const method = request.method.toUpperCase();
   const isRead = method === "GET" || method === "HEAD";
 
-  // Prefer key from Site Settings (authenticated request header), then .env
-  const adminKey =
-    request.headers.get("x-varsovia-admin-key")?.trim() ||
-    process.env.VARSOVIA_ADMIN_KEY?.trim() ||
-    "";
+  // Server-side only — same pattern as Thailand Kitchen (no UI key prompt).
+  const adminKey = process.env.VARSOVIA_ADMIN_KEY?.trim() || "";
   if (!adminKey && !isRead) {
     return Response.json(
       {
         message:
-          "Admin Key missing. Open Site Settings, save your Varsovia Admin Key, then try again.",
+          "VARSOVIA_ADMIN_KEY is not configured on the admin server. Add it to admin/.env.local (must match Varsovia backend ADMIN_KEY).",
       },
       { status: 503 }
     );

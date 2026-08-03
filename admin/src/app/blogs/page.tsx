@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ImagePlus,
   LayoutGrid,
   List,
   Loader2,
@@ -25,6 +26,7 @@ import { useAdminAuth } from "@/lib/AdminAuthContext";
 import {
   createBlog,
   deleteBlog,
+  generateBlogImageWithAI,
   generateBlogWithAI,
   listBlogs,
   updateBlog,
@@ -149,6 +151,8 @@ export default function AdminBlogsPage() {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiTopic, setAiTopic] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiCoverImage, setAiCoverImage] = useState("");
+  const [aiImageLoading, setAiImageLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -462,6 +466,49 @@ export default function AdminBlogsPage() {
     }
   };
 
+  const onGenerateCoverImage = async (opts?: {
+    topic?: string;
+    title?: string;
+    applyToForm?: boolean;
+  }) => {
+    const topic =
+      (opts?.topic ?? aiTopic).trim() ||
+      (opts?.title ?? form.title).trim() ||
+      "";
+    if (!topic) {
+      toast.error("Enter a blog topic (or title) before generating an image");
+      return;
+    }
+
+    setAiImageLoading(true);
+    try {
+      const res = await generateBlogImageWithAI(siteId, {
+        topic,
+        title: opts?.title || form.title || undefined,
+      });
+      if (!res?.success || !res?.image) {
+        throw new Error(res?.message || "No image returned from Gemini");
+      }
+      setAiCoverImage(res.image);
+      if (opts?.applyToForm || modal) {
+        setForm((prev) => ({ ...prev, image: res.image }));
+      }
+      toast.success(
+        res.source === "gemini"
+          ? "Cover image generated with Gemini"
+          : "Cover image generated with AI"
+      );
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ||
+        (err instanceof Error ? err.message : "Image generation failed");
+      toast.error(msg);
+    } finally {
+      setAiImageLoading(false);
+    }
+  };
+
   const onGenerateAI = async () => {
     setAiLoading(true);
     try {
@@ -469,6 +516,7 @@ export default function AdminBlogsPage() {
         topic: aiTopic.trim() || undefined,
       });
       const a = res.article;
+      const cover = aiCoverImage.trim() || a.image || "";
       setEditing(null);
       setForm({
         ...emptyForm(),
@@ -478,7 +526,7 @@ export default function AdminBlogsPage() {
         author: a.author || "Admin",
         publishDate: a.publishDate || new Date().toISOString().slice(0, 10),
         excerpt: a.excerpt || "",
-        image: a.image || "",
+        image: cover,
         bodySections:
           a.bodySections?.length > 0
             ? a.bodySections.map((s) => ({
@@ -500,8 +548,13 @@ export default function AdminBlogsPage() {
       setLang("en");
       setAiOpen(false);
       setAiTopic("");
+      setAiCoverImage("");
       setModal("create");
-      toast.success("Blog draft + images generated successfully");
+      toast.success(
+        cover
+          ? "Blog draft generated with cover image"
+          : "Blog draft generated successfully"
+      );
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -560,7 +613,11 @@ export default function AdminBlogsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setAiOpen(true)}
+              onClick={() => {
+                setAiCoverImage("");
+                setAiTopic("");
+                setAiOpen(true);
+              }}
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#E2E5EA] bg-[#F8FAFC] text-[#1A2332] text-sm font-semibold px-4 hover:bg-[#F1F5F9]"
             >
               <Sparkles className="w-4 h-4" />
@@ -895,6 +952,28 @@ export default function AdminBlogsPage() {
                       1 High-Res Cover Image
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    disabled={aiImageLoading || aiLoading}
+                    onClick={() =>
+                      void onGenerateCoverImage({
+                        topic: form.title || form.excerpt || aiTopic,
+                        title: form.title,
+                        applyToForm: true,
+                      })
+                    }
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E2E5EA] bg-[#F8FAFC] px-4 py-2.5 text-sm font-semibold text-[#1A2332] hover:bg-[#F1F5F9] disabled:opacity-60"
+                  >
+                    {aiImageLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="h-4 w-4" />
+                    )}
+                    {aiImageLoading ? "Generating image…" : "Generate Image with AI"}
+                  </button>
+                  <p className="text-center text-[11px] font-medium uppercase tracking-wide text-[#94A3B8]">
+                    or upload manually
+                  </p>
                   <MediaUpload
                     label="Upload 1 Widescreen Cover Image"
                     kind="image"
@@ -1126,19 +1205,24 @@ export default function AdminBlogsPage() {
 
       {aiOpen ? (
         <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white rounded-2xl p-6 space-y-4">
+          <div className="w-full max-w-lg bg-white rounded-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-bold text-lg text-[#1A2332]">
                   Generate with AI
                 </h3>
                 <p className="text-xs text-[#6B7280] mt-1">
-                  Enter a topic and AI will draft a full blog article for you.
+                  Enter a topic, optionally generate or upload a cover image,
+                  then draft the full blog article.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => !aiLoading && setAiOpen(false)}
+                onClick={() => {
+                  if (aiLoading || aiImageLoading) return;
+                  setAiOpen(false);
+                  setAiCoverImage("");
+                }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1150,21 +1234,67 @@ export default function AdminBlogsPage() {
                 onChange={(e) => setAiTopic(e.target.value)}
                 placeholder="e.g. L-shaped kitchens for Thai island villas"
                 className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
-                disabled={aiLoading}
+                disabled={aiLoading || aiImageLoading}
               />
             </label>
+
+            <div className="space-y-3 rounded-xl border border-[#E8EAED] bg-[#FAFBFC] p-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#334155]">
+                  Cover image
+                </p>
+                <p className="mt-0.5 text-[11px] text-[#94A3B8]">
+                  Generate a widescreen cover with AI, or upload your own below.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={aiLoading || aiImageLoading || !aiTopic.trim()}
+                onClick={() => void onGenerateCoverImage({ topic: aiTopic })}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {aiImageLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-4 w-4" />
+                )}
+                {aiImageLoading ? "Generating image…" : "Generate Image"}
+              </button>
+              {aiCoverImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={aiCoverImage}
+                  alt="AI cover preview"
+                  className="h-36 w-full rounded-lg border border-[#E8EAED] object-cover bg-white"
+                />
+              ) : null}
+              <p className="text-center text-[11px] font-medium uppercase tracking-wide text-[#94A3B8]">
+                or upload manually
+              </p>
+              <MediaUpload
+                label="Upload cover image"
+                kind="image"
+                value={aiCoverImage}
+                onChange={setAiCoverImage}
+                hint="PNG, JPG, JPEG, GIF, WEBP (Max 10MB)"
+              />
+            </div>
+
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
-                disabled={aiLoading}
-                onClick={() => setAiOpen(false)}
+                disabled={aiLoading || aiImageLoading}
+                onClick={() => {
+                  setAiOpen(false);
+                  setAiCoverImage("");
+                }}
                 className="rounded-lg border px-4 py-2 text-sm"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={aiLoading}
+                disabled={aiLoading || aiImageLoading}
                 onClick={onGenerateAI}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] text-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
               >

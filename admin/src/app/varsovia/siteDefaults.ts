@@ -381,6 +381,83 @@ export const VARSOVIA_SITE_DEFAULTS: SiteRecord = {
   phone: "+66 64 683 9777",
   email: "hi@thailandkitchens.com",
   address: en("Route 4169, Mae Nam, Amphoe Ko Samui, Surat Thani 84330"),
+
+  contactPhone: "+66 64 683 9777",
+  mobileWhatsapp: "+66 99 359 6916",
+  whatsappUrl: "https://wa.me/66993596916",
+  facebookUrl: "https://www.facebook.com/ThailandKitchens/",
+  footerOffices: [
+    {
+      label: en("Samui Office"),
+      address: "Route 4169, Mae Nam, Amphoe Ko Samui, Surat Thani 84330",
+    },
+    {
+      label: en("Phuket Office"),
+      address: "Royal Phuket Marina, Building MS2, Ko Kaeo, Mueang, Phuket 83000",
+    },
+    {
+      label: en("Pattaya Office"),
+      address:
+        "82, 48-49 Chaiyaphruek 2 Rd, Pattaya City, Bang Lamung District, Chon Buri 20150",
+    },
+  ],
+
+  interiorCatalogMode: "hybrid",
+
+  footerNavigation: {
+    version: 1,
+    linkColumns: [
+      {
+        id: "primary",
+        order: 1,
+        enabled: true,
+        links: [
+          { label: en("Blog"), href: "/blog", enabled: true },
+          { label: en("About Us"), href: "/about", enabled: true },
+          { label: en("Contact Us"), href: "/contact", enabled: true },
+          { label: en("FAQ"), href: "/faq", enabled: true },
+          { label: en("Catalogue"), href: "/catalogue", enabled: true },
+        ],
+      },
+      {
+        id: "products",
+        order: 2,
+        enabled: true,
+        links: [
+          { label: en("Kitchen"), href: "/interior?category=Kitchen", enabled: true },
+          { label: en("Bedroom"), href: "/interior?category=Bedroom", enabled: true },
+          { label: en("Bathroom"), href: "/interior?category=Bathroom", enabled: true },
+          { label: en("Furniture"), href: "/interior?category=Furniture", enabled: true },
+          {
+            label: en("Door & Windows"),
+            href: "/interior?category=Door%20%26%20Windows",
+            enabled: true,
+          },
+          {
+            label: en("Whole House Solutions"),
+            href: "/interior?category=Whole%20House%20Solutions",
+            enabled: true,
+          },
+        ],
+      },
+    ],
+    legalLinks: [
+      { label: en("Privacy"), href: "/privacy", enabled: true },
+      { label: en("Terms"), href: "/terms", enabled: true },
+      { label: en("Sitemap"), href: "/sitemap.xml", enabled: true },
+    ],
+    contactHeading: en("Contact Us"),
+    contactLabels: {
+      email: en("Email"),
+      mobileWhatsapp: en("Mobile / WhatsApp"),
+      contactNumber: en("Contact Number"),
+    },
+    socialLabels: {
+      whatsapp: en("WhatsApp"),
+      facebook: en("Facebook"),
+    },
+    copyright: en("©{year} Varsovia Design"),
+  },
 };
 
 function isBlank(value: unknown): boolean {

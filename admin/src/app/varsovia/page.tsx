@@ -1,12 +1,16 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  Check,
+  ChevronDown,
+  ImagePlus,
   Loader2,
   Plus,
   Pencil,
   Save,
+  Search,
   Sparkles,
   Trash2,
   Upload,
@@ -14,20 +18,23 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import AdminShell from "@/components/AdminShell";
+import MediaUpload from "@/components/MediaUpload";
 import { mergeVarsoviaSiteDefaults } from "./siteDefaults";
-import { generateBlogWithAI, uploadMedia } from "@/services/adminAPI";
+import {
+  generateBlogImageWithAI,
+  generateBlogWithAI,
+} from "@/services/adminAPI";
+import { toPublicMediaUrl } from "@/lib/publicMediaUrl";
 import {
   createVarsoviaRecord,
   deleteVarsoviaRecord,
   getVarsoviaSite,
-  getStoredVarsoviaAdminKey,
-  listVarsoviaContacts,
   listVarsoviaRecords,
   localizedValue,
-  setStoredVarsoviaAdminKey,
-  updateVarsoviaContactStatus,
   updateVarsoviaRecord,
   updateVarsoviaSite,
+  varsoviaErrorMessage,
+  uploadVarsoviaMedia,
   type LocaleCode,
   type VarsoviaRecord,
   type VarsoviaResource,
@@ -49,7 +56,11 @@ type FieldType =
   | "tool-list"
   | "spec-list"
   | "content-sections"
-  | "strength-list";
+  | "strength-list"
+  | "office-list"
+  | "search-page-list"
+  | "footer-nav"
+  | "select";
 type Field = {
   key: string;
   label: string;
@@ -58,12 +69,29 @@ type Field = {
   required?: boolean;
   /** Shows an Upload button next to the URL input (image / logo / PDF). */
   media?: MediaKind;
+  /** For localized-string-list: stores each entry as `{ [itemKey]: localizedMap }`. */
+  itemKey?: string;
+  /** Options for `select` fields. */
+  options?: { value: string; label: string }[];
 };
+/** Gallery-style listing (image cards + search + category filter). */
+type CardListConfig = {
+  imageKey: string;
+  subtitleKey?: string;
+  subtitleSuffix?: string;
+  descriptionKey: string;
+  searchPlaceholder: string;
+  createLabel: string;
+  emptyLabel: string;
+  fallbackBadge: string;
+};
+
 type ResourceConfig = {
   label: string;
   singular: string;
   titleKey: string;
   fields: Field[];
+  card?: CardListConfig;
 };
 
 const LOCALES: { id: LocaleCode; label: string }[] = [
@@ -213,6 +241,8 @@ const SITE_SECTIONS: SiteSection[] = [
       { key: "phone", label: "Phone" },
       { key: "email", label: "Email" },
       { key: "address", label: "Address", localized: true, type: "textarea" },
+      { key: "contactPhone", label: "Footer Contact Phone" },
+      { key: "mobileWhatsapp", label: "Footer Mobile / WhatsApp Number" },
     ],
   },
   {
@@ -235,13 +265,22 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "footer",
     title: "Footer & Social",
-    description: "Footer description and social media links.",
+    description:
+      "Footer bio, social links, offices, and the dynamic footer navigation columns.",
     fields: [
       { key: "footerBio", label: "Footer Description", localized: true, type: "textarea" },
       { key: "socialLinks.whatsapp", label: "WhatsApp URL" },
       { key: "socialLinks.instagram", label: "Instagram URL" },
       { key: "socialLinks.x", label: "X URL" },
       { key: "socialLinks.facebook", label: "Facebook URL" },
+      { key: "whatsappUrl", label: "Footer WhatsApp Link" },
+      { key: "facebookUrl", label: "Footer Facebook Link" },
+      { key: "footerOffices", label: "Footer Offices", type: "office-list" },
+      {
+        key: "footerNavigation",
+        label: "Footer Navigation",
+        type: "footer-nav",
+      },
     ],
   },
   {
@@ -287,6 +326,63 @@ const SITE_SECTIONS: SiteSection[] = [
       { key: "showcaseMeta", label: "Showcase Tab Meta", type: "showcase-meta-list" },
     ],
   },
+  {
+    id: "navigation",
+    title: "Navigation & Search",
+    description: "Header menu, showcase mega menu, and navbar search result pages.",
+    fields: [
+      {
+        key: "mainNavigation",
+        label: "Main Navigation (JSON)",
+        type: "json",
+      },
+      { key: "searchPages", label: "Search Result Pages", type: "search-page-list" },
+    ],
+  },
+  {
+    id: "inquiryForm",
+    title: "Inquiry Form",
+    description:
+      "Contact page and catalogue download form fields (labels, required flags, options).",
+    fields: [
+      {
+        key: "inquiryForm",
+        label: "Inquiry Form (JSON)",
+        type: "json",
+      },
+    ],
+  },
+  {
+    id: "sectionCopy",
+    title: "Section Headings",
+    description:
+      "Override the heading and subtitle for individual homepage sections.",
+    fields: [
+      { key: "sectionCopy.products.title", label: "Products Heading", localized: true },
+      { key: "sectionCopy.products.subtitle", label: "Products Subheading", localized: true },
+      { key: "sectionCopy.partners.title", label: "Partners Heading", localized: true },
+      { key: "sectionCopy.partners.subtitle", label: "Partners Subheading", localized: true },
+      { key: "sectionCopy.coreStrengths.title", label: "Core Strengths Heading", localized: true },
+      { key: "sectionCopy.coreStrengths.subtitle", label: "Core Strengths Subheading", localized: true },
+    ],
+  },
+  {
+    id: "interior",
+    title: "Interior Catalogue",
+    description:
+      "Choose whether the interior listing shows only your CMS projects or merges them with the built-in samples.",
+    fields: [
+      {
+        key: "interiorCatalogMode",
+        label: "Interior Catalogue Source",
+        type: "select",
+        options: [
+          { value: "hybrid", label: "Hybrid — sample projects + CMS projects" },
+          { value: "api", label: "CMS only — show just my projects" },
+        ],
+      },
+    ],
+  },
 ];
 
 const CONFIGS: Record<VarsoviaResource, ResourceConfig> = {
@@ -294,6 +390,15 @@ const CONFIGS: Record<VarsoviaResource, ResourceConfig> = {
     label: "Products",
     singular: "Product",
     titleKey: "title",
+    card: {
+      imageKey: "image",
+      subtitleSuffix: "layout",
+      descriptionKey: "description",
+      searchPlaceholder: "Search product inventory...",
+      createLabel: "Create Product",
+      emptyLabel: "No products found.",
+      fallbackBadge: "Kitchen",
+    },
     fields: [
       { key: "title", label: "Title", localized: true, required: true },
       { key: "description", label: "Description", localized: true, type: "textarea" },
@@ -301,7 +406,7 @@ const CONFIGS: Record<VarsoviaResource, ResourceConfig> = {
       { key: "slug", label: "Slug" },
       { key: "image", label: "Image URL", media: "image" },
       { key: "gallery", label: "Gallery Images", type: "string-list", media: "image" },
-      { key: "features", label: "Features", type: "localized-string-list" },
+      { key: "features", label: "Features", type: "localized-string-list", itemKey: "text" },
       { key: "specs", label: "Specifications", type: "spec-list" },
       { key: "category", label: "Category" },
       { key: "featured", label: "Featured", type: "boolean" },
@@ -313,6 +418,15 @@ const CONFIGS: Record<VarsoviaResource, ResourceConfig> = {
     label: "Interior Projects",
     singular: "Project",
     titleKey: "title",
+    card: {
+      imageKey: "coverImage",
+      subtitleKey: "location",
+      descriptionKey: "description",
+      searchPlaceholder: "Search interior projects...",
+      createLabel: "Create Project",
+      emptyLabel: "No interior projects found.",
+      fallbackBadge: "Interior",
+    },
     fields: [
       { key: "title", label: "Title", localized: true, required: true },
       { key: "description", label: "Description", localized: true, type: "textarea" },
@@ -339,6 +453,15 @@ const CONFIGS: Record<VarsoviaResource, ResourceConfig> = {
     label: "Blogs",
     singular: "Blog",
     titleKey: "title",
+    card: {
+      imageKey: "image",
+      subtitleKey: "author.name",
+      descriptionKey: "excerpt",
+      searchPlaceholder: "Search blogs...",
+      createLabel: "Create Blog",
+      emptyLabel: "No blogs found.",
+      fallbackBadge: "Design",
+    },
     fields: [
       { key: "title", label: "Title", localized: true, required: true },
       { key: "excerpt", label: "Excerpt", localized: true, type: "textarea" },
@@ -375,8 +498,8 @@ const CONFIGS: Record<VarsoviaResource, ResourceConfig> = {
       { key: "name", label: "Name", localized: true, required: true },
       { key: "role", label: "Role", localized: true },
       { key: "quote", label: "Quote", localized: true, type: "textarea", required: true },
-      { key: "rating", label: "Rating (1–5)", type: "number" },
-      { key: "image", label: "Image URL", media: "image" },
+      { key: "image", label: "Photo", media: "image" },
+      { key: "rating", label: "Rating (1-5)", type: "number" },
       VISIBLE_FIELD,
       { key: "order", label: "Order", type: "number" },
     ],
@@ -387,8 +510,11 @@ const CONFIGS: Record<VarsoviaResource, ResourceConfig> = {
     titleKey: "title",
     fields: [
       { key: "title", label: "Title", localized: true, required: true },
-      { key: "coverImage", label: "Cover Image URL", media: "image" },
-      { key: "downloadUrl", label: "Download URL", media: "pdf" },
+      { key: "category", label: "Category", localized: true },
+      { key: "coverImage", label: "Cover Image", media: "image" },
+      { key: "downloadUrl", label: "PDF File", media: "pdf" },
+      { key: "fileName", label: "Legacy file name (optional)" },
+      { key: "downloadName", label: "Download name" },
       VISIBLE_FIELD,
       { key: "order", label: "Order", type: "number" },
     ],
@@ -488,17 +614,32 @@ function normalizeRecord(record?: VarsoviaRecord) {
   return copy;
 }
 
+/** Rewrite admin-origin /uploads URLs so the public Varsovia site can load them. */
+function sanitizeRecordMediaUrls(form: Record<string, unknown>) {
+  const next = { ...form };
+  for (const key of ["image", "coverImage", "avatar", "logo", "pdfUrl"] as const) {
+    if (typeof next[key] === "string") {
+      next[key] = toPublicMediaUrl(next[key] as string);
+    }
+  }
+  if (Array.isArray(next.gallery)) {
+    next.gallery = next.gallery.map((item) =>
+      typeof item === "string" ? toPublicMediaUrl(item) : item
+    );
+  }
+  if (Array.isArray(next.sections)) {
+    next.sections = next.sections.map((section) => {
+      if (!section || typeof section !== "object") return section;
+      const row = { ...(section as Record<string, unknown>) };
+      if (typeof row.image === "string") row.image = toPublicMediaUrl(row.image);
+      return row;
+    });
+  }
+  return next;
+}
+
 function errorMessage(error: unknown) {
-  const candidate = error as {
-    response?: { data?: { message?: string; errors?: { message?: string }[] } };
-    message?: string;
-  };
-  return (
-    candidate.response?.data?.errors?.[0]?.message ||
-    candidate.response?.data?.message ||
-    candidate.message ||
-    "Request failed"
-  );
+  return varsoviaErrorMessage(error);
 }
 
 export default function VarsoviaManagerPage() {
@@ -519,9 +660,7 @@ function VarsoviaManagerContent() {
   const search = useSearchParams();
   const requested = search.get("resource") || "site";
   const active =
-    requested === "site" ||
-    requested === "contacts" ||
-    RESOURCE_IDS.includes(requested as VarsoviaResource)
+    requested === "site" || RESOURCE_IDS.includes(requested as VarsoviaResource)
       ? requested
       : "site";
 
@@ -529,8 +668,12 @@ function VarsoviaManagerContent() {
     <AdminShell title="Varsovia Kitchen CMS">
       {active === "site" ? (
         <SiteSettings />
-      ) : active === "contacts" ? (
-        <ContactsManager />
+      ) : active === "testimonials" ? (
+        <TestimonialsInlineEditor />
+      ) : active === "faqs" ? (
+        <FaqsInlineEditor />
+      ) : active === "catalogues" ? (
+        <CataloguesInlineEditor />
       ) : (
         <ResourceManager resource={active as VarsoviaResource} />
       )}
@@ -539,8 +682,6 @@ function VarsoviaManagerContent() {
 }
 
 function SiteSettings() {
-  const [adminKey, setAdminKey] = useState("");
-  const [savingKey, setSavingKey] = useState(false);
   const [content, setContent] = useState<Record<string, unknown>>({});
   const [locale, setLocale] = useState<LocaleCode>("en");
   const [loadingContent, setLoadingContent] = useState(false);
@@ -561,26 +702,8 @@ function SiteSettings() {
   }, []);
 
   useEffect(() => {
-    const stored = getStoredVarsoviaAdminKey();
-    setAdminKey(stored);
-    if (stored) void loadContent();
+    void loadContent();
   }, [loadContent]);
-
-  const saveKey = () => {
-    const trimmed = adminKey.trim();
-    if (!trimmed) {
-      toast.error("Enter a valid Admin Key");
-      return;
-    }
-    setSavingKey(true);
-    try {
-      setStoredVarsoviaAdminKey(trimmed);
-      toast.success("Admin Key saved");
-      void loadContent();
-    } finally {
-      setSavingKey(false);
-    }
-  };
 
   const updateContentField = (field: Field, value: unknown) => {
     if (field.localized) {
@@ -620,31 +743,9 @@ function SiteSettings() {
       <div>
         <h2 className="text-xl font-bold">Site Settings</h2>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Enter the Varsovia API Admin Key used for create, update and delete.
+          Manage multilingual Varsovia website content. Connected through your
+          admin login — same as Thailand Kitchen.
         </p>
-      </div>
-
-      <div className="max-w-xl rounded-xl border border-[#DDE1E7] bg-white p-5 space-y-4">
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-[#1A2332]">Admin Key</span>
-          <input
-            type="password"
-            value={adminKey}
-            onChange={(event) => setAdminKey(event.target.value)}
-            placeholder="Enter Varsovia ADMIN_KEY"
-            autoComplete="off"
-            className="w-full rounded-lg border border-[#DDE1E7] px-3 py-2.5 text-sm outline-none focus:border-[#1A2332]"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={saveKey}
-          disabled={savingKey}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          <Save size={16} />
-          {savingKey ? "Saving…" : "Save Admin Key"}
-        </button>
       </div>
 
       <div className="rounded-xl border border-[#DDE1E7] bg-white">
@@ -675,10 +776,6 @@ function SiteSettings() {
 
         {loadingContent ? (
           <p className="p-6 text-sm text-[#6B7280]">Loading website content…</p>
-        ) : !adminKey.trim() ? (
-          <p className="p-6 text-sm text-[#6B7280]">
-            Save the Varsovia Admin Key to load multilingual website content.
-          </p>
         ) : (
           <div className="space-y-5 p-5">
             {SITE_SECTIONS.map((section) => (
@@ -708,7 +805,10 @@ function SiteSettings() {
                       field.type === "tool-list" ||
                       field.type === "spec-list" ||
                       field.type === "content-sections" ||
-                      field.type === "strength-list";
+                      field.type === "strength-list" ||
+                      field.type === "office-list" ||
+                      field.type === "search-page-list" ||
+                      field.type === "footer-nav";
                     const value = field.localized
                       ? localizedValue(raw, locale)
                       : structured
@@ -766,6 +866,895 @@ function SiteSettings() {
   );
 }
 
+type CatalogueDraft = {
+  clientKey: string;
+  _id?: string;
+  title: unknown;
+  category: unknown;
+  coverImage: string;
+  downloadUrl: string;
+  fileName: string;
+  downloadName: string;
+  visible: boolean;
+  order: number;
+};
+
+function toCatalogueDraft(item?: VarsoviaRecord, index = 0): CatalogueDraft {
+  return {
+    clientKey: item?._id || `catalogue-new-${index}-${Date.now()}`,
+    _id: item?._id,
+    title: item?.title ?? emptyLocalized(),
+    category: item?.category ?? emptyLocalized(),
+    coverImage: String(item?.coverImage ?? item?.image ?? ""),
+    downloadUrl: String(item?.downloadUrl ?? item?.pdfUrl ?? ""),
+    fileName: String(item?.fileName ?? ""),
+    downloadName: String(item?.downloadName ?? ""),
+    visible: item?.visible !== false,
+    order: Number(item?.order ?? index) || index,
+  };
+}
+
+function CataloguesInlineEditor() {
+  const [drafts, setDrafts] = useState<CatalogueDraft[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [locale, setLocale] = useState<LocaleCode>("en");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const rows = await listVarsoviaRecords("catalogues");
+      setDrafts(rows.map((item, index) => toCatalogueDraft(item, index)));
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const complete = drafts.length >= 1;
+
+  const updateDraft = (clientKey: string, patch: Partial<CatalogueDraft>) => {
+    setDrafts((prev) =>
+      prev.map((item) =>
+        item.clientKey === clientKey ? { ...item, ...patch } : item
+      )
+    );
+  };
+
+  const addDraft = () => {
+    setDrafts((prev) => [...prev, toCatalogueDraft(undefined, prev.length)]);
+  };
+
+  const removeDraft = async (draft: CatalogueDraft) => {
+    if (draft._id) {
+      if (
+        !confirm(
+          `Remove "${localizedValue(draft.title, locale) || "catalogue"}"?`
+        )
+      ) {
+        return;
+      }
+      try {
+        await deleteVarsoviaRecord("catalogues", draft._id);
+        toast.success("Catalogue deleted");
+      } catch (error) {
+        toast.error(errorMessage(error));
+        return;
+      }
+    }
+    setDrafts((prev) => prev.filter((item) => item.clientKey !== draft.clientKey));
+  };
+
+  const saveAll = async () => {
+    const invalid = drafts.some(
+      (draft) => !localizedValue(draft.title, "en").trim()
+    );
+    if (invalid) {
+      toast.error("Each catalogue needs an English title");
+      setLocale("en");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      for (let index = 0; index < drafts.length; index += 1) {
+        const draft = drafts[index];
+        const payload = {
+          title: draft.title,
+          category: draft.category,
+          coverImage: draft.coverImage,
+          downloadUrl: draft.downloadUrl,
+          fileName: draft.fileName,
+          downloadName: draft.downloadName,
+          visible: draft.visible,
+          order: index,
+        };
+        if (draft._id) {
+          await updateVarsoviaRecord("catalogues", draft._id, payload);
+        } else {
+          await createVarsoviaRecord("catalogues", payload);
+        }
+      }
+      toast.success("Catalogues saved");
+      await load();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldClass =
+    "w-full rounded-lg border border-[#E2E5EA] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A2332]/15 focus:border-[#1A2332]";
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-xl border border-[#E8EAED] bg-white p-5 lg:p-6">
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-[#1A2332]">Free Catalogue</h2>
+            <p className="mt-0.5 text-sm text-[#6B7280]">
+              3 downloadable PDF catalogs
+            </p>
+          </div>
+          {complete ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-semibold text-[#166534]">
+              <Check className="h-3.5 w-3.5" />
+              Complete
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(["en", "th", "pl"] as LocaleCode[]).map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setLocale(code)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase ${
+                locale === code
+                  ? "bg-[#1A2332] text-white"
+                  : "bg-[#F3F4F6] text-[#5C6370]"
+              }`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-[#6B7280]">Loading…</p>
+        ) : (
+          <div className="space-y-4">
+            {drafts.map((draft, index) => (
+              <div
+                key={draft.clientKey}
+                className="space-y-3 rounded-xl border border-[#E8EAED] p-4"
+              >
+                <div className="flex justify-between">
+                  <span className="text-xs font-bold uppercase text-[#5C6370]">
+                    Catalogue #{index + 1}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-xs text-red-600"
+                    onClick={() => void removeDraft(draft)}
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={localizedValue(draft.title, locale)}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          title: writeLocalizedField(
+                            draft.title,
+                            locale,
+                            event.target.value
+                          ),
+                        })
+                      }
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                      Category
+                    </label>
+                    <input
+                      type="text"
+                      value={localizedValue(draft.category, locale)}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          category: writeLocalizedField(
+                            draft.category,
+                            locale,
+                            event.target.value
+                          ),
+                        })
+                      }
+                      className={fieldClass}
+                    />
+                  </div>
+                </div>
+
+                <MediaUpload
+                  label="Cover Image"
+                  kind="image"
+                  value={draft.coverImage}
+                  onChange={(value) =>
+                    updateDraft(draft.clientKey, { coverImage: value })
+                  }
+                  uploadFile={uploadVarsoviaMedia}
+                />
+
+                <MediaUpload
+                  label="PDF File"
+                  kind="pdf"
+                  value={draft.downloadUrl}
+                  onChange={(value) =>
+                    updateDraft(draft.clientKey, { downloadUrl: value })
+                  }
+                  uploadFile={uploadVarsoviaMedia}
+                />
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                      Legacy file name (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={draft.fileName}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          fileName: event.target.value,
+                        })
+                      }
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                      Download name
+                    </label>
+                    <input
+                      type="text"
+                      value={draft.downloadName}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          downloadName: event.target.value,
+                        })
+                      }
+                      className={fieldClass}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addDraft}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#CBD5E1] px-3 py-2 text-xs font-semibold text-[#1A2332] hover:bg-[#F8FAFC]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add catalogue
+            </button>
+          </div>
+        )}
+
+        <div className="mt-8 flex items-center gap-2 border-t border-[#E8EAED] pt-5">
+          <button
+            type="button"
+            onClick={() => void saveAll()}
+            disabled={saving || loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243044] disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {saving ? "Saving…" : "Save Section"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={saving || loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#DC2626] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#B91C1C] disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" />
+            Reload
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type FaqDraft = {
+  clientKey: string;
+  _id?: string;
+  question: unknown;
+  answer: unknown;
+  category: unknown;
+  visible: boolean;
+  order: number;
+};
+
+function toFaqDraft(item?: VarsoviaRecord, index = 0): FaqDraft {
+  return {
+    clientKey: item?._id || `faq-new-${index}-${Date.now()}`,
+    _id: item?._id,
+    question: item?.question ?? emptyLocalized(),
+    answer: item?.answer ?? emptyLocalized(),
+    category: item?.category ?? emptyLocalized(),
+    visible: item?.visible !== false,
+    order: Number(item?.order ?? index) || index,
+  };
+}
+
+function FaqsInlineEditor() {
+  const [drafts, setDrafts] = useState<FaqDraft[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [locale, setLocale] = useState<LocaleCode>("en");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const rows = await listVarsoviaRecords("faqs");
+      setDrafts(rows.map((item, index) => toFaqDraft(item, index)));
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const complete = drafts.length >= 1;
+
+  const updateDraft = (clientKey: string, patch: Partial<FaqDraft>) => {
+    setDrafts((prev) =>
+      prev.map((item) =>
+        item.clientKey === clientKey ? { ...item, ...patch } : item
+      )
+    );
+  };
+
+  const addDraft = () => {
+    setDrafts((prev) => [...prev, toFaqDraft(undefined, prev.length)]);
+  };
+
+  const removeDraft = async (draft: FaqDraft) => {
+    if (draft._id) {
+      if (
+        !confirm(
+          `Remove "${localizedValue(draft.question, locale) || "FAQ"}"?`
+        )
+      ) {
+        return;
+      }
+      try {
+        await deleteVarsoviaRecord("faqs", draft._id);
+        toast.success("FAQ deleted");
+      } catch (error) {
+        toast.error(errorMessage(error));
+        return;
+      }
+    }
+    setDrafts((prev) => prev.filter((item) => item.clientKey !== draft.clientKey));
+  };
+
+  const saveAll = async () => {
+    const invalid = drafts.some(
+      (draft) =>
+        !localizedValue(draft.question, "en").trim() ||
+        !localizedValue(draft.answer, "en").trim()
+    );
+    if (invalid) {
+      toast.error("Each FAQ needs an English question and answer");
+      setLocale("en");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      for (let index = 0; index < drafts.length; index += 1) {
+        const draft = drafts[index];
+        const payload = {
+          question: draft.question,
+          answer: draft.answer,
+          category: draft.category,
+          visible: draft.visible,
+          order: index,
+        };
+        if (draft._id) {
+          await updateVarsoviaRecord("faqs", draft._id, payload);
+        } else {
+          await createVarsoviaRecord("faqs", payload);
+        }
+      }
+      toast.success("FAQs saved");
+      await load();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldClass =
+    "w-full rounded-lg border border-[#E2E5EA] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A2332]/15 focus:border-[#1A2332]";
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-xl border border-[#E8EAED] bg-white p-5 lg:p-6">
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-[#1A2332]">FAQ Section</h2>
+            <p className="mt-0.5 text-sm text-[#6B7280]">
+              Frequently asked questions
+            </p>
+          </div>
+          {complete ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-semibold text-[#166534]">
+              <Check className="h-3.5 w-3.5" />
+              Complete
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(["en", "th", "pl"] as LocaleCode[]).map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setLocale(code)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase ${
+                locale === code
+                  ? "bg-[#1A2332] text-white"
+                  : "bg-[#F3F4F6] text-[#5C6370]"
+              }`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-[#6B7280]">Loading…</p>
+        ) : (
+          <div className="space-y-4">
+            {drafts.map((draft, index) => (
+              <div
+                key={draft.clientKey}
+                className="space-y-3 rounded-xl border border-[#E8EAED] p-4"
+              >
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="text-xs text-red-600"
+                    onClick={() => void removeDraft(draft)}
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                    Question #{index + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={localizedValue(draft.question, locale)}
+                    onChange={(event) =>
+                      updateDraft(draft.clientKey, {
+                        question: writeLocalizedField(
+                          draft.question,
+                          locale,
+                          event.target.value
+                        ),
+                      })
+                    }
+                    className={fieldClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                    Answer
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={localizedValue(draft.answer, locale)}
+                    onChange={(event) =>
+                      updateDraft(draft.clientKey, {
+                        answer: writeLocalizedField(
+                          draft.answer,
+                          locale,
+                          event.target.value
+                        ),
+                      })
+                    }
+                    className={`${fieldClass} resize-y`}
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addDraft}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#CBD5E1] px-3 py-2 text-xs font-semibold text-[#1A2332] hover:bg-[#F8FAFC]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add FAQ
+            </button>
+          </div>
+        )}
+
+        <div className="mt-8 flex items-center gap-2 border-t border-[#E8EAED] pt-5">
+          <button
+            type="button"
+            onClick={() => void saveAll()}
+            disabled={saving || loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243044] disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {saving ? "Saving…" : "Save Section"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={saving || loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#DC2626] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#B91C1C] disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" />
+            Reload
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type TestimonialDraft = {
+  clientKey: string;
+  _id?: string;
+  name: unknown;
+  role: unknown;
+  quote: unknown;
+  image: string;
+  rating: number;
+  visible: boolean;
+  order: number;
+};
+
+function emptyLocalized(value = "") {
+  return { en: value, th: "", pl: "" };
+}
+
+function toTestimonialDraft(item?: VarsoviaRecord, index = 0): TestimonialDraft {
+  return {
+    clientKey: item?._id || `new-${index}-${Date.now()}`,
+    _id: item?._id,
+    name: item?.name ?? emptyLocalized(),
+    role: item?.role ?? emptyLocalized(),
+    quote: item?.quote ?? emptyLocalized(),
+    image: String(item?.image ?? ""),
+    rating: Number(item?.rating ?? 5) || 5,
+    visible: item?.visible !== false,
+    order: Number(item?.order ?? index) || index,
+  };
+}
+
+function writeLocalizedField(
+  current: unknown,
+  locale: LocaleCode,
+  value: string
+) {
+  const base =
+    current && typeof current === "object" && !Array.isArray(current)
+      ? { ...(current as Record<string, string>) }
+      : {
+          en: typeof current === "string" ? current : "",
+          th: "",
+          pl: "",
+        };
+  base[locale] = value;
+  return base;
+}
+
+function TestimonialsInlineEditor() {
+  const [drafts, setDrafts] = useState<TestimonialDraft[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [locale, setLocale] = useState<LocaleCode>("en");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const rows = await listVarsoviaRecords("testimonials");
+      setDrafts(rows.map((item, index) => toTestimonialDraft(item, index)));
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const complete = drafts.length >= 1;
+
+  const updateDraft = (clientKey: string, patch: Partial<TestimonialDraft>) => {
+    setDrafts((prev) =>
+      prev.map((item) =>
+        item.clientKey === clientKey ? { ...item, ...patch } : item
+      )
+    );
+  };
+
+  const addDraft = () => {
+    setDrafts((prev) => [
+      ...prev,
+      toTestimonialDraft(undefined, prev.length),
+    ]);
+  };
+
+  const removeDraft = async (draft: TestimonialDraft) => {
+    if (draft._id) {
+      if (!confirm(`Remove "${localizedValue(draft.name, locale) || "testimonial"}"?`)) {
+        return;
+      }
+      try {
+        await deleteVarsoviaRecord("testimonials", draft._id);
+        toast.success("Testimonial deleted");
+      } catch (error) {
+        toast.error(errorMessage(error));
+        return;
+      }
+    }
+    setDrafts((prev) => prev.filter((item) => item.clientKey !== draft.clientKey));
+  };
+
+  const saveAll = async () => {
+    const invalid = drafts.some(
+      (draft) =>
+        !localizedValue(draft.name, "en").trim() ||
+        !localizedValue(draft.quote, "en").trim()
+    );
+    if (invalid) {
+      toast.error("Each testimonial needs an English name and quote");
+      setLocale("en");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      for (let index = 0; index < drafts.length; index += 1) {
+        const draft = drafts[index];
+        const payload = {
+          name: draft.name,
+          role: draft.role,
+          quote: draft.quote,
+          image: draft.image,
+          rating: draft.rating,
+          visible: draft.visible,
+          order: index,
+        };
+        if (draft._id) {
+          await updateVarsoviaRecord("testimonials", draft._id, payload);
+        } else {
+          await createVarsoviaRecord("testimonials", payload);
+        }
+      }
+      toast.success("Testimonials saved");
+      await load();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldClass =
+    "w-full rounded-lg border border-[#E2E5EA] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A2332]/15 focus:border-[#1A2332]";
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-xl border border-[#E8EAED] bg-white p-5 lg:p-6">
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-[#1A2332]">Testimonials</h2>
+            <p className="mt-0.5 text-sm text-[#6B7280]">
+              Customer reviews & ratings
+            </p>
+          </div>
+          {complete ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-semibold text-[#166534]">
+              <Check className="h-3.5 w-3.5" />
+              Complete
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(["en", "th", "pl"] as LocaleCode[]).map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setLocale(code)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase ${
+                locale === code
+                  ? "bg-[#1A2332] text-white"
+                  : "bg-[#F3F4F6] text-[#5C6370]"
+              }`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-[#6B7280]">Loading…</p>
+        ) : (
+          <div className="space-y-4">
+            {drafts.map((draft) => (
+              <div
+                key={draft.clientKey}
+                className="space-y-3 rounded-xl border border-[#E8EAED] p-4"
+              >
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="text-xs text-red-600"
+                    onClick={() => void removeDraft(draft)}
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={localizedValue(draft.name, locale)}
+                    onChange={(event) =>
+                      updateDraft(draft.clientKey, {
+                        name: writeLocalizedField(
+                          draft.name,
+                          locale,
+                          event.target.value
+                        ),
+                      })
+                    }
+                    className={fieldClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                    Role
+                  </label>
+                  <input
+                    type="text"
+                    value={localizedValue(draft.role, locale)}
+                    onChange={(event) =>
+                      updateDraft(draft.clientKey, {
+                        role: writeLocalizedField(
+                          draft.role,
+                          locale,
+                          event.target.value
+                        ),
+                      })
+                    }
+                    className={fieldClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                    Quote
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={localizedValue(draft.quote, locale)}
+                    onChange={(event) =>
+                      updateDraft(draft.clientKey, {
+                        quote: writeLocalizedField(
+                          draft.quote,
+                          locale,
+                          event.target.value
+                        ),
+                      })
+                    }
+                    className={`${fieldClass} resize-y`}
+                  />
+                </div>
+
+                <MediaUpload
+                  label="Photo"
+                  kind="image"
+                  value={draft.image}
+                  onChange={(value) =>
+                    updateDraft(draft.clientKey, { image: value })
+                  }
+                  uploadFile={uploadVarsoviaMedia}
+                />
+
+                <div className="max-w-[140px]">
+                  <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                    Rating (1-5)
+                  </label>
+                  <input
+                    type="text"
+                    value={String(draft.rating ?? 5)}
+                    onChange={(event) =>
+                      updateDraft(draft.clientKey, {
+                        rating: Number(event.target.value) || 5,
+                      })
+                    }
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addDraft}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#CBD5E1] px-3 py-2 text-xs font-semibold text-[#1A2332] hover:bg-[#F8FAFC]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add testimonial
+            </button>
+          </div>
+        )}
+
+        <div className="mt-8 flex items-center gap-2 border-t border-[#E8EAED] pt-5">
+          <button
+            type="button"
+            onClick={() => void saveAll()}
+            disabled={saving || loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243044] disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {saving ? "Saving…" : "Save Section"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={saving || loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#DC2626] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#B91C1C] disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" />
+            Reload
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ResourceManager({ resource }: { resource: VarsoviaResource }) {
   const config = CONFIGS[resource];
   const [items, setItems] = useState<VarsoviaRecord[]>([]);
@@ -777,6 +1766,11 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiTopic, setAiTopic] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiCoverImage, setAiCoverImage] = useState("");
+  const [aiImageLoading, setAiImageLoading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All categories");
+  const card = config.card;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -791,8 +1785,42 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
 
   useEffect(() => {
     setEditing(undefined);
+    setQuery("");
+    setCategoryFilter("All categories");
     void load();
   }, [load]);
+
+  const cardCategories = useMemo(() => {
+    if (!card) return ["All categories"];
+    const set = new Set<string>();
+    for (const item of items) {
+      const category = localizedValue(getAtPath(item, "category")).trim();
+      if (category) set.add(category);
+    }
+    return ["All categories", ...Array.from(set)];
+  }, [card, items]);
+
+  const cardItems = useMemo(() => {
+    if (!card) return items;
+    const q = query.trim().toLowerCase();
+    return items.filter((item) => {
+      const title = localizedValue(getAtPath(item, config.titleKey)).toLowerCase();
+      const description = localizedValue(
+        getAtPath(item, card.descriptionKey)
+      ).toLowerCase();
+      const slug = String(item.slug ?? "").toLowerCase();
+      const category = localizedValue(getAtPath(item, "category")).trim();
+      const matchesQuery =
+        !q ||
+        title.includes(q) ||
+        description.includes(q) ||
+        slug.includes(q) ||
+        category.toLowerCase().includes(q);
+      const matchesCategory =
+        categoryFilter === "All categories" || category === categoryFilter;
+      return matchesQuery && matchesCategory;
+    });
+  }, [card, config.titleKey, items, query, categoryFilter]);
 
   const open = (item?: VarsoviaRecord) => {
     setEditing(item || null);
@@ -826,13 +1854,15 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
       return;
     }
 
+    const payload = sanitizeRecordMediaUrls(form);
+
     try {
       setSaving(true);
       if (editing?._id) {
-        await updateVarsoviaRecord(resource, editing._id, form);
+        await updateVarsoviaRecord(resource, editing._id, payload);
         toast.success(`${config.singular} updated`);
       } else {
-        await createVarsoviaRecord(resource, form);
+        await createVarsoviaRecord(resource, payload);
         toast.success(`${config.singular} created`);
       }
       setEditing(undefined);
@@ -856,6 +1886,28 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
     }
   };
 
+  const generateCoverImage = async () => {
+    const topic = aiTopic.trim();
+    if (!topic) {
+      toast.error("Enter a blog topic before generating an image");
+      return;
+    }
+
+    setAiImageLoading(true);
+    try {
+      const res = await generateBlogImageWithAI("varsovia-kitchen", { topic });
+      if (!res?.success || !res?.image) {
+        throw new Error(res?.message || "No image returned from OpenAI");
+      }
+      setAiCoverImage(res.image);
+      toast.success("Cover image generated with AI");
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setAiImageLoading(false);
+    }
+  };
+
   const generateBlogDraft = async () => {
     const topic = aiTopic.trim();
     if (!topic) {
@@ -873,6 +1925,7 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
         text: { en: section.content || "" },
         image: section.image || "",
       }));
+      const cover = aiCoverImage.trim() || article.image || "";
 
       setEditing(null);
       setLocale("en");
@@ -897,14 +1950,19 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
           avatar: "",
         },
         date: article.publishDate || new Date().toISOString().slice(0, 10),
-        image: article.image || "",
+        image: cover,
         views: 0,
         visible: true,
         order: 0,
       });
       setAiOpen(false);
       setAiTopic("");
-      toast.success("Varsovia blog draft generated");
+      setAiCoverImage("");
+      toast.success(
+        cover
+          ? "Varsovia blog draft generated with cover image"
+          : "Varsovia blog draft generated"
+      );
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -914,85 +1972,239 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
 
   return (
     <section className="space-y-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold">{config.label}</h2>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            Manage English, Thai and Polish content in Varsovia API.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {resource === "blogs" ? (
-            <button
-              type="button"
-              onClick={() => setAiOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-[#DDE1E7] bg-white px-4 py-2.5 text-sm font-semibold text-[#1A2332] hover:bg-[#F7F8FA]"
-            >
-              <Sparkles size={16} /> Generate with AI
-            </button>
-          ) : null}
-          <button
-            onClick={() => open()}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white"
-          >
-            <Plus size={16} /> Add {config.singular}
-          </button>
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-[#E2E5EA] bg-white">
-        {loading ? (
-          <p className="p-8 text-sm text-[#6B7280]">Loading…</p>
-        ) : items.length === 0 ? (
-          <p className="p-8 text-sm text-[#6B7280]">
-            No {config.label.toLowerCase()} found.
-          </p>
-        ) : (
-          <div className="divide-y divide-[#E8EAED]">
-            {items.map((item) => (
-              <div
-                key={item._id}
-                className="flex items-center justify-between gap-4 px-5 py-4"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">
-                    {localizedValue(getAtPath(item, config.titleKey)) ||
-                      `Untitled ${config.singular}`}
-                  </p>
-                  <p className="mt-1 text-xs text-[#8A9099]">
-                    ID: {item._id}
-                  </p>
-                  <span
-                    className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                      item.visible === false
-                        ? "bg-gray-100 text-gray-600"
-                        : "bg-emerald-50 text-emerald-700"
-                    }`}
-                  >
-                    {item.visible === false ? "Hidden" : "Visible"}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => open(item)}
-                    className="rounded-lg bg-blue-50 p-2 text-blue-700"
-                    aria-label="Edit"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={() => void remove(item)}
-                    className="rounded-lg bg-red-50 p-2 text-red-600"
-                    aria-label="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+      {card ? (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-[270px]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={card.searchPlaceholder}
+                  className="h-11 w-full rounded-xl border border-[#E2E5EA] bg-white pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#1A2332]/15"
+                />
               </div>
-            ))}
+              <div className="relative">
+                <select
+                  value={categoryFilter}
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                  className="h-11 min-w-[170px] appearance-none rounded-xl border border-[#E2E5EA] bg-white px-4 pr-9 text-sm outline-none focus:ring-2 focus:ring-[#1A2332]/15"
+                >
+                  {cardCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {resource === "blogs" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAiCoverImage("");
+                    setAiTopic("");
+                    setAiOpen(true);
+                  }}
+                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#DDE1E7] bg-white px-4 text-sm font-semibold text-[#1A2332] hover:bg-[#F7F8FA]"
+                >
+                  <Sparkles size={16} /> Generate with AI
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => open()}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#1A2332] px-4 text-sm font-semibold text-white"
+              >
+                <Plus className="h-4 w-4" />
+                {card.createLabel}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          {loading ? (
+            <p className="text-sm text-[#6B7280]">Loading…</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {cardItems.length === 0 ? (
+                <div className="col-span-full rounded-xl border border-[#E8EAED] bg-white p-10 text-center text-[#6B7280]">
+                  {card.emptyLabel}
+                </div>
+              ) : (
+                cardItems.map((item) => {
+                  const title =
+                    localizedValue(getAtPath(item, config.titleKey)) ||
+                    `Untitled ${config.singular}`;
+                  const description = localizedValue(
+                    getAtPath(item, card.descriptionKey)
+                  );
+                  const category = localizedValue(
+                    getAtPath(item, "category")
+                  ).trim();
+                  const subtitle = card.subtitleKey
+                    ? localizedValue(getAtPath(item, card.subtitleKey)).trim()
+                    : category
+                      ? `${category} ${card.subtitleSuffix ?? ""}`.trim()
+                      : "";
+                  const image = String(
+                    getAtPath(item, card.imageKey) ?? ""
+                  ).trim();
+                  return (
+                    <article
+                      key={item._id}
+                      className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white"
+                    >
+                      <div className="relative h-40 w-full bg-[#F3F4F6]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={image || "/products/Kitchen1.png"}
+                          alt={title}
+                          className="h-full w-full object-cover"
+                          onError={(event) => {
+                            const el = event.currentTarget;
+                            if (el.dataset.fallback === "1") return;
+                            el.dataset.fallback = "1";
+                            el.src = "/products/Kitchen1.png";
+                          }}
+                        />
+                        <span className="absolute left-2 top-2 rounded-md bg-white px-2 py-1 text-[10px] font-semibold text-[#475569]">
+                          {category || card.fallbackBadge}
+                        </span>
+                      </div>
+                      <div className="space-y-2 p-4">
+                        <h3 className="line-clamp-2 text-base font-semibold text-[#1A2332]">
+                          {title}
+                        </h3>
+                        <p className="line-clamp-1 text-sm text-[#64748B]">
+                          {subtitle || "—"}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-[#EEF2F7] px-2 py-0.5 text-xs text-[#475569]">
+                            {category || "—"}
+                          </span>
+                          <span className="text-[11px] text-[#9CA3AF]">
+                            Updated recently
+                          </span>
+                        </div>
+                        <p className="line-clamp-2 text-xs text-[#475569]">
+                          {description || "—"}
+                        </p>
+                        <div className="flex justify-end gap-1 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => open(item)}
+                            className="inline-flex rounded-lg p-2 text-[#1A2332] hover:bg-[#F3F4F6]"
+                            aria-label="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void remove(item)}
+                            className="inline-flex rounded-lg p-2 text-[#DC2626] hover:bg-red-50"
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold">{config.label}</h2>
+              <p className="mt-1 text-sm text-[#6B7280]">
+                Manage English, Thai and Polish content in Varsovia API.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {resource === "blogs" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAiCoverImage("");
+                    setAiTopic("");
+                    setAiOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#DDE1E7] bg-white px-4 py-2.5 text-sm font-semibold text-[#1A2332] hover:bg-[#F7F8FA]"
+                >
+                  <Sparkles size={16} /> Generate with AI
+                </button>
+              ) : null}
+              <button
+                onClick={() => open()}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <Plus size={16} /> Add {config.singular}
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-[#E2E5EA] bg-white">
+            {loading ? (
+              <p className="p-8 text-sm text-[#6B7280]">Loading…</p>
+            ) : items.length === 0 ? (
+              <p className="p-8 text-sm text-[#6B7280]">
+                No {config.label.toLowerCase()} found.
+              </p>
+            ) : (
+              <div className="divide-y divide-[#E8EAED]">
+                {items.map((item) => (
+                  <div
+                    key={item._id}
+                    className="flex items-center justify-between gap-4 px-5 py-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">
+                        {localizedValue(getAtPath(item, config.titleKey)) ||
+                          `Untitled ${config.singular}`}
+                      </p>
+                      <p className="mt-1 text-xs text-[#8A9099]">
+                        ID: {item._id}
+                      </p>
+                      <span
+                        className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          item.visible === false
+                            ? "bg-gray-100 text-gray-600"
+                            : "bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        {item.visible === false ? "Hidden" : "Visible"}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => open(item)}
+                        className="rounded-lg bg-blue-50 p-2 text-blue-700"
+                        aria-label="Edit"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => void remove(item)}
+                        className="rounded-lg bg-red-50 p-2 text-red-600"
+                        aria-label="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {editing !== undefined && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
@@ -1054,7 +2266,10 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
                     field.type === "tool-list" ||
                     field.type === "spec-list" ||
                     field.type === "content-sections" ||
-                    field.type === "strength-list";
+                    field.type === "strength-list" ||
+                    field.type === "office-list" ||
+                    field.type === "search-page-list" ||
+                    field.type === "footer-nav";
                   const raw = getAtPath(form, field.key);
                   const value = structured
                     ? raw
@@ -1112,26 +2327,28 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
       )}
 
       {resource === "blogs" && aiOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg max-h-[90vh] space-y-4 overflow-y-auto rounded-2xl bg-white p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-[#1A2332]">
                   Generate with AI
                 </h3>
                 <p className="mt-1 text-xs text-[#6B7280]">
-                  Enter a topic and AI will prepare an editable Varsovia blog
-                  draft.
+                  Enter a topic, optionally generate or upload a cover image,
+                  then draft the full blog article.
                 </p>
               </div>
               <button
                 type="button"
-                disabled={aiLoading}
-                onClick={() => setAiOpen(false)}
-                className="rounded-lg p-1.5 hover:bg-gray-100 disabled:opacity-50"
+                onClick={() => {
+                  if (aiLoading || aiImageLoading) return;
+                  setAiOpen(false);
+                  setAiCoverImage("");
+                }}
                 aria-label="Close"
               >
-                <X size={18} />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -1140,33 +2357,73 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
               <input
                 value={aiTopic}
                 onChange={(event) => setAiTopic(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !aiLoading) {
-                    event.preventDefault();
-                    void generateBlogDraft();
-                  }
-                }}
                 placeholder="e.g. Timeless modular kitchens for luxury homes"
-                disabled={aiLoading}
+                disabled={aiLoading || aiImageLoading}
                 autoFocus
-                className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal outline-none focus:border-[#1A2332]"
+                className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
               />
             </label>
+
+            <div className="space-y-3 rounded-xl border border-[#E8EAED] bg-[#FAFBFC] p-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#334155]">
+                  Cover image
+                </p>
+                <p className="mt-0.5 text-[11px] text-[#94A3B8]">
+                  Generate a widescreen cover with AI, or upload your own below.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={aiLoading || aiImageLoading || !aiTopic.trim()}
+                onClick={() => void generateCoverImage()}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {aiImageLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-4 w-4" />
+                )}
+                {aiImageLoading ? "Generating image…" : "Generate Image"}
+              </button>
+              {aiCoverImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={aiCoverImage}
+                  alt="AI cover preview"
+                  className="h-36 w-full rounded-lg border border-[#E8EAED] object-cover bg-white"
+                />
+              ) : null}
+              <p className="text-center text-[11px] font-medium uppercase tracking-wide text-[#94A3B8]">
+                or upload manually
+              </p>
+              <MediaUpload
+                label="Upload cover image"
+                kind="image"
+                value={aiCoverImage}
+                onChange={setAiCoverImage}
+                hint="PNG, JPG, JPEG, GIF, WEBP (Max 10MB)"
+                uploadFile={uploadVarsoviaMedia}
+              />
+            </div>
 
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
-                disabled={aiLoading}
-                onClick={() => setAiOpen(false)}
-                className="rounded-lg border border-[#DDE1E7] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                disabled={aiLoading || aiImageLoading}
+                onClick={() => {
+                  setAiOpen(false);
+                  setAiCoverImage("");
+                }}
+                className="rounded-lg border px-4 py-2 text-sm"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={aiLoading || !aiTopic.trim()}
+                disabled={aiLoading || aiImageLoading}
                 onClick={() => void generateBlogDraft()}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >
                 {aiLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1273,6 +2530,11 @@ function FieldControl({
   }
 
   if (field.type === "localized-string-list") {
+    const itemKey = field.itemKey;
+    const unwrap = (item: unknown) =>
+      itemKey && item && typeof item === "object" && !Array.isArray(item)
+        ? (item as Record<string, unknown>)[itemKey]
+        : item;
     return (
       <div className="md:col-span-2">
         <FieldLabel field={field} />
@@ -1280,16 +2542,18 @@ function FieldControl({
           {items.map((item, index) => (
             <div key={index} className="flex gap-2">
               <input
-                value={localizedValue(item, locale)}
+                value={localizedValue(unwrap(item), locale)}
                 onChange={(event) => {
+                  const inner = unwrap(item);
                   const current: Record<string, unknown> =
-                    item && typeof item === "object" && !Array.isArray(item)
-                      ? { ...(item as Record<string, unknown>) }
-                      : { en: typeof item === "string" ? item : "" };
+                    inner && typeof inner === "object" && !Array.isArray(inner)
+                      ? { ...(inner as Record<string, unknown>) }
+                      : { en: typeof inner === "string" ? inner : "" };
                   current[locale] = event.target.value;
+                  const next = itemKey ? { [itemKey]: current } : current;
                   onChange(
                     items.map((entry, itemIndex) =>
-                      itemIndex === index ? current : entry
+                      itemIndex === index ? next : entry
                     )
                   );
                 }}
@@ -1306,7 +2570,9 @@ function FieldControl({
           ))}
           <button
             type="button"
-            onClick={() => onChange([...items, { en: "" }])}
+            onClick={() =>
+              onChange([...items, itemKey ? { [itemKey]: { en: "" } } : { en: "" }])
+            }
             className="inline-flex items-center gap-2 rounded-lg border border-dashed border-[#B9C0CA] px-3 py-2 text-xs font-semibold text-[#5C6370]"
           >
             <Plus size={14} /> Add feature
@@ -1911,6 +3177,450 @@ function FieldControl({
     );
   }
 
+  if (field.type === "office-list") {
+    const offices = items.map((item) =>
+      item && typeof item === "object" ? (item as Record<string, unknown>) : {}
+    );
+    return (
+      <div className="md:col-span-2">
+        <FieldLabel field={field} />
+        <div className="space-y-3">
+          {offices.map((entry, index) => (
+            <div key={index} className="rounded-xl border border-[#E2E5EA] bg-[#FAFBFC] p-4">
+              <div className="mb-3 flex justify-between gap-3">
+                <span className="text-xs font-bold text-[#5C6370]">Office {index + 1}</span>
+                <ListButtons
+                  index={index}
+                  length={offices.length}
+                  onMove={move}
+                  onRemove={() => onChange(offices.filter((_, i) => i !== index))}
+                />
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <SmallInput
+                  label="Label"
+                  value={localizedValue(entry.label, locale)}
+                  onChange={(next) =>
+                    onChange(
+                      offices.map((current, i) =>
+                        i === index ? setEntryLocalized(current, "label", next) : current
+                      )
+                    )
+                  }
+                />
+                <SmallInput
+                  label="Address"
+                  value={String(entry.address ?? "")}
+                  onChange={(next) =>
+                    onChange(
+                      offices.map((current, i) =>
+                        i === index ? { ...current, address: next } : current
+                      )
+                    )
+                  }
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              onChange([...offices, { label: { en: "" }, address: "" }])
+            }
+            className="inline-flex items-center gap-2 rounded-lg border border-dashed border-[#B9C0CA] px-3 py-2 text-xs font-semibold text-[#5C6370]"
+          >
+            <Plus size={14} /> Add office
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (field.type === "search-page-list") {
+    const pages = items.map((item) =>
+      item && typeof item === "object" ? (item as Record<string, unknown>) : {}
+    );
+    return (
+      <div className="md:col-span-2">
+        <FieldLabel field={field} />
+        <div className="space-y-3">
+          {pages.map((entry, index) => (
+            <div key={index} className="rounded-xl border border-[#E2E5EA] bg-[#FAFBFC] p-4">
+              <div className="mb-3 flex justify-between gap-3">
+                <span className="text-xs font-bold text-[#5C6370]">Page {index + 1}</span>
+                <ListButtons
+                  index={index}
+                  length={pages.length}
+                  onMove={move}
+                  onRemove={() => onChange(pages.filter((_, i) => i !== index))}
+                />
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <SmallInput
+                  label="Title"
+                  value={localizedValue(entry.title, locale)}
+                  onChange={(next) =>
+                    onChange(
+                      pages.map((current, i) =>
+                        i === index ? setEntryLocalized(current, "title", next) : current
+                      )
+                    )
+                  }
+                />
+                <SmallInput
+                  label="Link"
+                  value={String(entry.href ?? "")}
+                  onChange={(next) =>
+                    onChange(
+                      pages.map((current, i) =>
+                        i === index ? { ...current, href: next } : current
+                      )
+                    )
+                  }
+                />
+                <SmallInput
+                  label="Description"
+                  value={localizedValue(entry.description, locale)}
+                  onChange={(next) =>
+                    onChange(
+                      pages.map((current, i) =>
+                        i === index
+                          ? setEntryLocalized(current, "description", next)
+                          : current
+                      )
+                    )
+                  }
+                />
+                <SmallInput
+                  label="Order"
+                  value={String(entry.order ?? index)}
+                  onChange={(next) =>
+                    onChange(
+                      pages.map((current, i) =>
+                        i === index ? { ...current, order: Number(next) || 0 } : current
+                      )
+                    )
+                  }
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              onChange([
+                ...pages,
+                { title: { en: "" }, description: { en: "" }, href: "", order: pages.length },
+              ])
+            }
+            className="inline-flex items-center gap-2 rounded-lg border border-dashed border-[#B9C0CA] px-3 py-2 text-xs font-semibold text-[#5C6370]"
+          >
+            <Plus size={14} /> Add search page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (field.type === "footer-nav") {
+    const nav =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : { version: 1 };
+    const linkColumns = Array.isArray(nav.linkColumns)
+      ? (nav.linkColumns as Record<string, unknown>[])
+      : [];
+    const legalLinks = Array.isArray(nav.legalLinks)
+      ? (nav.legalLinks as Record<string, unknown>[])
+      : [];
+    const contactLabels =
+      nav.contactLabels && typeof nav.contactLabels === "object"
+        ? (nav.contactLabels as Record<string, unknown>)
+        : {};
+    const socialLabels =
+      nav.socialLabels && typeof nav.socialLabels === "object"
+        ? (nav.socialLabels as Record<string, unknown>)
+        : {};
+
+    const patchNav = (partial: Record<string, unknown>) =>
+      onChange({ version: 1, ...nav, ...partial });
+
+    const emptyLink = () => ({
+      label: { en: "" },
+      href: "",
+      enabled: true,
+    });
+
+    const renderLinkEditor = (
+      links: Record<string, unknown>[],
+      onLinksChange: (next: Record<string, unknown>[]) => void,
+      addLabel: string
+    ) => (
+      <div className="space-y-2">
+        {links.map((link, index) => (
+          <div
+            key={index}
+            className="grid gap-2 rounded-lg border border-[#E8EAED] bg-white p-3 md:grid-cols-[1fr_1fr_auto_auto]"
+          >
+            <SmallInput
+              label="Label"
+              value={localizedValue(link.label, locale)}
+              onChange={(next) =>
+                onLinksChange(
+                  links.map((current, i) =>
+                    i === index ? setEntryLocalized(current, "label", next) : current
+                  )
+                )
+              }
+            />
+            <SmallInput
+              label="Link"
+              value={String(link.href ?? "")}
+              onChange={(next) =>
+                onLinksChange(
+                  links.map((current, i) =>
+                    i === index ? { ...current, href: next } : current
+                  )
+                )
+              }
+            />
+            <label className="flex items-end gap-2 pb-2 text-xs font-semibold text-[#5C6370]">
+              <input
+                type="checkbox"
+                checked={link.enabled !== false}
+                onChange={(event) =>
+                  onLinksChange(
+                    links.map((current, i) =>
+                      i === index
+                        ? { ...current, enabled: event.target.checked }
+                        : current
+                    )
+                  )
+                }
+                className="h-4 w-4 accent-[#1A2332]"
+              />
+              On
+            </label>
+            <div className="flex items-end pb-1">
+              <ListButtons
+                index={index}
+                length={links.length}
+                onMove={(from, direction) => {
+                  const target = from + direction;
+                  if (target < 0 || target >= links.length) return;
+                  const next = [...links];
+                  [next[from], next[target]] = [next[target], next[from]];
+                  onLinksChange(next);
+                }}
+                onRemove={() => onLinksChange(links.filter((_, i) => i !== index))}
+              />
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => onLinksChange([...links, emptyLink()])}
+          className="inline-flex items-center gap-2 rounded-lg border border-dashed border-[#B9C0CA] px-3 py-2 text-xs font-semibold text-[#5C6370]"
+        >
+          <Plus size={14} /> {addLabel}
+        </button>
+      </div>
+    );
+
+    return (
+      <div className="md:col-span-2 space-y-5">
+        <FieldLabel field={field} />
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <SmallInput
+            label="Contact heading"
+            value={localizedValue(nav.contactHeading, locale)}
+            onChange={(next) =>
+              patchNav(setEntryLocalized(nav, "contactHeading", next))
+            }
+          />
+          <SmallInput
+            label="Copyright (use {year} for current year)"
+            value={localizedValue(nav.copyright, locale)}
+            onChange={(next) => patchNav(setEntryLocalized(nav, "copyright", next))}
+          />
+          <SmallInput
+            label="Email label"
+            value={localizedValue(contactLabels.email, locale)}
+            onChange={(next) =>
+              patchNav({
+                contactLabels: setEntryLocalized(contactLabels, "email", next),
+              })
+            }
+          />
+          <SmallInput
+            label="Mobile / WhatsApp label"
+            value={localizedValue(contactLabels.mobileWhatsapp, locale)}
+            onChange={(next) =>
+              patchNav({
+                contactLabels: setEntryLocalized(
+                  contactLabels,
+                  "mobileWhatsapp",
+                  next
+                ),
+              })
+            }
+          />
+          <SmallInput
+            label="Contact number label"
+            value={localizedValue(contactLabels.contactNumber, locale)}
+            onChange={(next) =>
+              patchNav({
+                contactLabels: setEntryLocalized(
+                  contactLabels,
+                  "contactNumber",
+                  next
+                ),
+              })
+            }
+          />
+          <SmallInput
+            label="WhatsApp social label"
+            value={localizedValue(socialLabels.whatsapp, locale)}
+            onChange={(next) =>
+              patchNav({
+                socialLabels: setEntryLocalized(socialLabels, "whatsapp", next),
+              })
+            }
+          />
+          <SmallInput
+            label="Facebook social label"
+            value={localizedValue(socialLabels.facebook, locale)}
+            onChange={(next) =>
+              patchNav({
+                socialLabels: setEntryLocalized(socialLabels, "facebook", next),
+              })
+            }
+          />
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5C6370]">
+            Link columns
+          </p>
+          {linkColumns.map((column, columnIndex) => {
+            const links = Array.isArray(column.links)
+              ? (column.links as Record<string, unknown>[])
+              : [];
+            return (
+              <div
+                key={columnIndex}
+                className="rounded-xl border border-[#E2E5EA] bg-[#FAFBFC] p-4 space-y-3"
+              >
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="grid flex-1 gap-3 md:grid-cols-3">
+                    <SmallInput
+                      label="Column ID"
+                      value={String(column.id ?? "")}
+                      onChange={(next) =>
+                        patchNav({
+                          linkColumns: linkColumns.map((current, i) =>
+                            i === columnIndex ? { ...current, id: next } : current
+                          ),
+                        })
+                      }
+                    />
+                    <SmallInput
+                      label="Order"
+                      value={String(column.order ?? columnIndex + 1)}
+                      onChange={(next) =>
+                        patchNav({
+                          linkColumns: linkColumns.map((current, i) =>
+                            i === columnIndex
+                              ? { ...current, order: Number(next) || 0 }
+                              : current
+                          ),
+                        })
+                      }
+                    />
+                    <label className="flex items-end gap-2 pb-2 text-xs font-semibold text-[#5C6370]">
+                      <input
+                        type="checkbox"
+                        checked={column.enabled !== false}
+                        onChange={(event) =>
+                          patchNav({
+                            linkColumns: linkColumns.map((current, i) =>
+                              i === columnIndex
+                                ? { ...current, enabled: event.target.checked }
+                                : current
+                            ),
+                          })
+                        }
+                        className="h-4 w-4 accent-[#1A2332]"
+                      />
+                      Column enabled
+                    </label>
+                  </div>
+                  <ListButtons
+                    index={columnIndex}
+                    length={linkColumns.length}
+                    onMove={(from, direction) => {
+                      const target = from + direction;
+                      if (target < 0 || target >= linkColumns.length) return;
+                      const next = [...linkColumns];
+                      [next[from], next[target]] = [next[target], next[from]];
+                      patchNav({ linkColumns: next });
+                    }}
+                    onRemove={() =>
+                      patchNav({
+                        linkColumns: linkColumns.filter((_, i) => i !== columnIndex),
+                      })
+                    }
+                  />
+                </div>
+                {renderLinkEditor(
+                  links,
+                  (nextLinks) =>
+                    patchNav({
+                      linkColumns: linkColumns.map((current, i) =>
+                        i === columnIndex ? { ...current, links: nextLinks } : current
+                      ),
+                    }),
+                  "Add link"
+                )}
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() =>
+              patchNav({
+                linkColumns: [
+                  ...linkColumns,
+                  {
+                    id: `column-${linkColumns.length + 1}`,
+                    order: linkColumns.length + 1,
+                    enabled: true,
+                    links: [emptyLink()],
+                  },
+                ],
+              })
+            }
+            className="inline-flex items-center gap-2 rounded-lg border border-dashed border-[#B9C0CA] px-3 py-2 text-xs font-semibold text-[#5C6370]"
+          >
+            <Plus size={14} /> Add column
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5C6370]">
+            Legal links
+          </p>
+          {renderLinkEditor(
+            legalLinks,
+            (nextLinks) => patchNav({ legalLinks: nextLinks }),
+            "Add legal link"
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (field.type === "tool-list") {
     const tools = items.map((item) =>
       item && typeof item === "object" ? (item as Record<string, unknown>) : {}
@@ -2009,6 +3719,18 @@ function FieldControl({
           onChange={(event) => onChange(event.target.checked)}
           className="h-5 w-5 accent-[#1A2332]"
         />
+      ) : field.type === "select" ? (
+        <select
+          value={String(value ?? "")}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-lg border border-[#DDE1E7] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#1A2332]"
+        >
+          {(field.options || []).map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       ) : field.type === "textarea" || field.type === "json" ? (
         <textarea
           value={String(value ?? "")}
@@ -2103,7 +3825,7 @@ function InlineUploadButton({
     if (!file) return;
     setUploading(true);
     try {
-      const res = await uploadMedia(file, kind);
+      const res = await uploadVarsoviaMedia(file, kind);
       if (!res?.file?.url) throw new Error("No URL returned");
       onUploaded(res.file.url);
       toast.success("Uploaded");
@@ -2181,108 +3903,5 @@ function ListButtons({
         <Trash2 size={13} />
       </button>
     </div>
-  );
-}
-
-function ContactsManager() {
-  const [items, setItems] = useState<VarsoviaRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setItems(await listVarsoviaContacts());
-    } catch (error) {
-      toast.error(errorMessage(error));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const setStatus = async (id: string, status: string) => {
-    try {
-      await updateVarsoviaContactStatus(id, status);
-      toast.success("Lead status updated");
-      await load();
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  };
-
-  return (
-    <section className="space-y-5">
-      <div>
-        <h2 className="text-xl font-bold">Contact Leads</h2>
-        <p className="mt-1 text-sm text-[#6B7280]">
-          Enquiries submitted on the Varsovia website.
-        </p>
-      </div>
-      <div className="overflow-x-auto rounded-xl border border-[#E2E5EA] bg-white">
-        {loading ? (
-          <p className="p-8 text-sm text-[#6B7280]">Loading…</p>
-        ) : (
-          <table className="w-full min-w-[1400px] text-left text-sm">
-            <thead className="bg-[#F7F8FA] text-xs uppercase text-[#6B7280]">
-              <tr>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">WhatsApp</th>
-                <th className="px-4 py-3">City / Country</th>
-                <th className="px-4 py-3">Project</th>
-                <th className="px-4 py-3">Budget</th>
-                <th className="px-4 py-3">Message</th>
-                <th className="px-4 py-3">Submitted</th>
-                <th className="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E8EAED]">
-              {items.map((item) => (
-                <tr key={item._id}>
-                  <td className="px-4 py-4 font-semibold">
-                    {String(item.name || "—")}
-                  </td>
-                  <td className="px-4 py-4">{String(item.email || "—")}</td>
-                  <td className="px-4 py-4">{String(item.phone || "—")}</td>
-                  <td className="px-4 py-4">{String(item.whatsapp || "—")}</td>
-                  <td className="px-4 py-4">
-                    {[item.city, item.country].filter(Boolean).map(String).join(", ") || "—"}
-                  </td>
-                  <td className="px-4 py-4">
-                    {String(item.projectType || "—")}
-                  </td>
-                  <td className="px-4 py-4">{String(item.budget || "—")}</td>
-                  <td className="max-w-xs px-4 py-4">
-                    {String(item.message || "—")}
-                  </td>
-                  <td className="px-4 py-4">
-                    {item.createdAt
-                      ? new Date(String(item.createdAt)).toLocaleString()
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-4">
-                    <select
-                      value={String(item.status || "new")}
-                      onChange={(event) =>
-                        void setStatus(item._id, event.target.value)
-                      }
-                      className="rounded-lg border border-[#DDE1E7] px-3 py-2"
-                    >
-                      <option value="new">New</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </section>
   );
 }

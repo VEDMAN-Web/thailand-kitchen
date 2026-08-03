@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Home,
@@ -20,7 +20,6 @@ import {
   BriefcaseBusiness,
   Handshake,
   MapPin,
-  Inbox,
   Settings,
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/AdminAuthContext";
@@ -49,7 +48,6 @@ const VARSOVIA_NAV = [
   { href: "/varsovia?resource=team-members", resource: "team-members", label: "Team", icon: BriefcaseBusiness },
   { href: "/varsovia?resource=partners", resource: "partners", label: "Partners", icon: Handshake },
   { href: "/varsovia?resource=showrooms", resource: "showrooms", label: "Showrooms", icon: MapPin },
-  { href: "/varsovia?resource=contacts", resource: "contacts", label: "Contact Leads", icon: Inbox },
 ];
 
 const SITES: { id: SiteId; name: string }[] = [
@@ -86,6 +84,8 @@ function AdminShellContent({
   const { user, logout, siteId, setSiteId } = useAdminAuth();
   const isVarsovia = siteId === "varsovia-kitchen";
   const nav = isVarsovia ? VARSOVIA_NAV : THAILAND_NAV;
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isVarsovia && !pathname.startsWith("/varsovia")) {
@@ -95,12 +95,49 @@ function AdminShellContent({
     }
   }, [isVarsovia, pathname, router]);
 
+  useEffect(() => {
+    if (!profileOpen) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (!profileRef.current?.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileOpen(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [profileOpen]);
+
+  /** Unknown resources fall back to Site Settings, matching the Varsovia page. */
+  const requestedResource = searchParams.get("resource") || "site";
+  const activeResource = VARSOVIA_NAV.some(
+    (item) => item.resource === requestedResource
+  )
+    ? requestedResource
+    : "site";
+
+  /** Site Settings is a long form: pin the sidebar/header and scroll the form itself. */
+  const lockShellHeight = pathname === "/varsovia" && activeResource === "site";
+
+  useEffect(() => {
+    if (!lockShellHeight) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [lockShellHeight]);
+
   const isActive = (item: { href: string; resource?: string }) => {
     if (item.resource) {
-      return (
-        pathname === "/varsovia" &&
-        (searchParams.get("resource") || "site") === item.resource
-      );
+      return pathname === "/varsovia" && activeResource === item.resource;
     }
     return item.href === "/"
       ? pathname === "/"
@@ -115,8 +152,20 @@ function AdminShellContent({
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F5F7] text-[#1A1D26] flex">
-      <aside className="w-[240px] shrink-0 bg-white border-r border-[#E8EAED] flex flex-col">
+    <div
+      className={clsx(
+        "bg-[#F4F5F7] text-[#1A1D26] flex",
+        lockShellHeight
+          ? "fixed inset-0 z-0 overflow-hidden"
+          : "min-h-screen"
+      )}
+    >
+      <aside
+        className={clsx(
+          "w-[240px] shrink-0 bg-white border-r border-[#E8EAED] flex flex-col",
+          lockShellHeight && "h-full overflow-hidden"
+        )}
+      >
         <div className="px-5 py-5 flex items-center gap-2.5 border-b border-[#E8EAED]">
           <div className="w-8 h-8 rounded-full bg-[#1A2332] flex items-center justify-center">
             <Shield className="w-4 h-4 text-white" strokeWidth={2} />
@@ -124,7 +173,12 @@ function AdminShellContent({
           <span className="font-bold tracking-wide text-[15px]">TRUSTPRIME</span>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav
+          className={clsx(
+            "flex-1 px-3 py-4 space-y-1",
+            lockShellHeight && "min-h-0 overflow-y-auto"
+          )}
+        >
           {nav.map((item) => {
             const { href, label, icon: Icon } = item;
             return (
@@ -155,8 +209,18 @@ function AdminShellContent({
         </button>
       </aside>
 
-      <div className="flex-1 min-w-0 flex flex-col">
-        <header className="h-16 bg-white border-b border-[#E8EAED] px-6 flex items-center justify-between gap-4">
+      <div
+        className={clsx(
+          "flex-1 min-w-0 flex flex-col",
+          lockShellHeight && "min-h-0 h-full overflow-hidden"
+        )}
+      >
+        <header
+          className={clsx(
+            "h-16 bg-white border-b border-[#E8EAED] px-6 flex items-center justify-between gap-4",
+            lockShellHeight && "shrink-0"
+          )}
+        >
           <div className="flex items-center gap-4 min-w-0">
             <h1 className="text-sm font-bold tracking-[0.12em] uppercase truncate">
               {title}
@@ -177,15 +241,51 @@ function AdminShellContent({
             </div>
           </div>
 
-          <div className="relative shrink-0">
-            <div className="w-9 h-9 rounded-full bg-[#1A2332] text-white flex items-center justify-center text-xs font-semibold">
+          <div className="relative shrink-0" ref={profileRef}>
+            <button
+              type="button"
+              onClick={() => setProfileOpen((open) => !open)}
+              aria-expanded={profileOpen}
+              aria-haspopup="menu"
+              className="relative w-9 h-9 rounded-full bg-[#1A2332] text-white flex items-center justify-center text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#1A2332]/25"
+            >
               {user?.initials || "TH"}
-            </div>
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-white" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-white" />
+            </button>
+
+            {profileOpen ? (
+              <div
+                role="menu"
+                className="absolute right-0 top-[calc(100%+10px)] z-50 min-w-[240px] rounded-2xl bg-white px-5 py-4 shadow-[0_8px_28px_rgba(15,23,42,0.14)] border border-[#EEF0F3]"
+              >
+                <p className="text-[14px] text-[#4B5563] truncate">
+                  {user?.email || "thailandkichens@gmail.com"}
+                </p>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    logout();
+                  }}
+                  className="mt-3 flex items-center gap-2 text-[14px] font-medium text-[#C2185B] hover:text-[#A9144D] transition-colors"
+                >
+                  <LogOut className="w-4 h-4" strokeWidth={2} />
+                  Sign Out
+                </button>
+              </div>
+            ) : null}
           </div>
         </header>
 
-        <main className="flex-1 p-5 lg:p-6 overflow-auto">{children}</main>
+        <main
+          className={clsx(
+            "flex-1 p-5 lg:p-6",
+            lockShellHeight ? "min-h-0 overflow-auto" : "overflow-auto"
+          )}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

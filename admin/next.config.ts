@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
   },
   // Allow LAN + tunnel access to Next.js HMR /dev resources in development
   allowedDevOrigins: [
+    "192.168.1.18",
     "192.168.1.26",
     "localhost",
     "127.0.0.1",
