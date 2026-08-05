@@ -9,8 +9,8 @@ import { toast } from "sonner";
 export default function AdminLoginPage() {
   const { login } = useAdminAuth();
   const router = useRouter();
-  const [email, setEmail] = useState("admin@thailandkitchens.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4" autoComplete="off">
           <div>
             <label className="block text-xs font-semibold text-[#5C6370] mb-1.5 uppercase tracking-wide">
               Email
@@ -67,6 +67,7 @@ export default function AdminLoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
               className="w-full rounded-lg border border-[#E2E5EA] bg-[#F9FAFB] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A2332]/20 focus:border-[#1A2332]"
             />
           </div>
@@ -79,6 +80,7 @@ export default function AdminLoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               className="w-full rounded-lg border border-[#E2E5EA] bg-[#F9FAFB] px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A2332]/20 focus:border-[#1A2332]"
             />
           </div>

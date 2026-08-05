@@ -34,7 +34,7 @@ export interface ProductItem {
   description: string;
   gallery: GalleryTile[];
   features: ProductFeature[];
-  detailImages: [string, string];
+  detailImages: string[];
   contactImage: string;
 }
 

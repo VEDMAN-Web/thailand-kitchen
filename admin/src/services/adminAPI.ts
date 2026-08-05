@@ -339,7 +339,7 @@ export async function deleteContact(id: string) {
   return data;
 }
 
-/** Upload image, icon, or PDF for CMS fields */
+/** Upload image, icon, PDF, or video for CMS fields */
 export async function uploadMedia(
   file: File,
   kind: "image" | "icon" | "pdf" | "video" | "any" = "image"
@@ -347,28 +347,47 @@ export async function uploadMedia(
   const form = new FormData();
   form.append("kind", kind);
   form.append("file", file);
-  const { data } = await adminApi.post("/upload", form, {
-    headers: { "Content-Type": "multipart/form-data" },
-    timeout: 60000,
-    transformRequest: [
-      (body, headers) => {
-        if (headers && body instanceof FormData) {
-          delete headers["Content-Type"];
-        }
-        return body;
-      },
-    ],
-  });
-  return data as {
-    success: boolean;
-    file: {
-      url: string;
-      publicId?: string;
-      storage: string;
-      kind: string;
-      originalName: string;
+  try {
+    const { data } = await adminApi.post("/upload", form, {
+      // Let the browser set multipart boundary — never force Content-Type
+      headers: { "Content-Type": undefined as unknown as string },
+      timeout: 180000,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      transformRequest: [
+        (body, headers) => {
+          if (headers && body instanceof FormData) {
+            delete headers["Content-Type"];
+          }
+          return body;
+        },
+      ],
+    });
+    return data as {
+      success: boolean;
+      file: {
+        url: string;
+        publicId?: string;
+        storage: string;
+        kind: string;
+        originalName: string;
+      };
     };
-  };
+  } catch (error: unknown) {
+    const ax = error as {
+      code?: string;
+      message?: string;
+      response?: { data?: { message?: string } };
+    };
+    if (ax.code === "ECONNABORTED" || /aborted|timeout/i.test(ax.message || "")) {
+      throw new Error(
+        "Upload was cancelled or timed out. Wait for the upload to finish before saving or switching sections."
+      );
+    }
+    throw new Error(
+      ax.response?.data?.message || ax.message || "Upload failed"
+    );
+  }
 }
 
 export type GalleryCmsItem = {

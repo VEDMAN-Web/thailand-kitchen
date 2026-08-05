@@ -3,23 +3,44 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  BarChart3,
+  BookOpen,
+  BriefcaseBusiness,
   Check,
   ChevronDown,
+  CloudUpload,
+  Contact,
+  Eye,
+  FileDown,
+  FolderKanban,
+  Globe2,
+  Handshake,
+  Image as ImageIcon,
   ImagePlus,
+  Images,
+  LayoutGrid,
   Loader2,
-  Plus,
+  MessageSquareQuote,
+  Navigation,
+  Package,
   Pencil,
+  Plus,
   Save,
   Search,
+  Share2,
   Sparkles,
   Trash2,
+  Type,
   Upload,
+  Wrench,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { clsx } from "clsx";
 import { toast } from "sonner";
 import AdminShell from "@/components/AdminShell";
 import MediaUpload from "@/components/MediaUpload";
-import { mergeVarsoviaSiteDefaults } from "./siteDefaults";
+import { mergeVarsoviaSiteDefaults, VARSOVIA_SITE_DEFAULTS } from "./siteDefaults";
 import {
   generateBlogImageWithAI,
   generateBlogWithAI,
@@ -60,6 +81,7 @@ type FieldType =
   | "office-list"
   | "search-page-list"
   | "footer-nav"
+  | "inquiry-form"
   | "select";
 type Field = {
   key: string;
@@ -111,13 +133,15 @@ type SiteSection = {
   title: string;
   description: string;
   fields: Field[];
+  icon: LucideIcon;
 };
 
 const SITE_SECTIONS: SiteSection[] = [
   {
     id: "hero",
-    title: "Hero",
-    description: "Homepage hero banner, headline and call-to-action buttons.",
+    title: "Hero Banner",
+    description: "Main headline & hero CTA",
+    icon: ImageIcon,
     fields: [
       { key: "heroEyebrow", label: "Hero Eyebrow", localized: true },
       { key: "heroHeadline", label: "Hero Headline", localized: true },
@@ -132,7 +156,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "about",
     title: "About",
-    description: "Home about block and the About page copy and imagery.",
+    description: "Brand story & about page copy",
+    icon: BookOpen,
     fields: [
       { key: "aboutTitle", label: "About Title", localized: true },
       { key: "aboutSubtitle", label: "About Subtitle", localized: true },
@@ -153,8 +178,9 @@ const SITE_SECTIONS: SiteSection[] = [
   },
   {
     id: "stats",
-    title: "Statistics, Vision & Process",
-    description: "Counter statistics plus the vision, mission, values and process steps.",
+    title: "Statistics",
+    description: "Counters, vision & process",
+    icon: BarChart3,
     fields: [
       { key: "stats", label: "Statistics", type: "stats-list" },
       { key: "statsImage", label: "Statistics Image URL", media: "image" },
@@ -170,7 +196,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "products",
     title: "Products",
-    description: "Products section heading and call-to-action labels.",
+    description: "Products section heading & CTA",
+    icon: Package,
     fields: [
       { key: "productsTitle", label: "Products Section Title", localized: true },
       { key: "productsSubtitle", label: "Products Section Subtitle", localized: true },
@@ -181,8 +208,9 @@ const SITE_SECTIONS: SiteSection[] = [
   },
   {
     id: "catalogue",
-    title: "Catalogue",
-    description: "Catalogue section heading and cover wording.",
+    title: "Free Catalogue",
+    description: "Catalogue heading & cover wording",
+    icon: FileDown,
     fields: [
       { key: "catalogueTitle", label: "Catalogue Section Title", localized: true },
       { key: "catalogueSubtitle", label: "Catalogue Section Subtitle", localized: true },
@@ -194,7 +222,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "projects",
     title: "Featured Projects",
-    description: "Featured projects heading and call-to-action.",
+    description: "Projects heading & call-to-action",
+    icon: FolderKanban,
     fields: [
       { key: "projectsTitle", label: "Projects Section Title", localized: true },
       { key: "projectsSubtitle", label: "Projects Section Subtitle", localized: true },
@@ -205,7 +234,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "testimonials",
     title: "Testimonials",
-    description: "Testimonials section heading.",
+    description: "Testimonials section heading",
+    icon: MessageSquareQuote,
     fields: [
       { key: "testimonialsTitle", label: "Testimonials Section Title", localized: true },
       { key: "testimonialsSubtitle", label: "Testimonials Section Subtitle", localized: true },
@@ -214,7 +244,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "coreStrengths",
     title: "Core Strengths",
-    description: "Core strengths heading and the individual strength cards.",
+    description: "Strength cards & heading",
+    icon: Sparkles,
     fields: [
       { key: "coreStrengthsTitle", label: "Core Strengths Title", localized: true },
       { key: "coreStrengthsSubtitle", label: "Core Strengths Subtitle", localized: true },
@@ -223,8 +254,9 @@ const SITE_SECTIONS: SiteSection[] = [
   },
   {
     id: "partners",
-    title: "Partners",
-    description: "Partners section heading.",
+    title: "Global Partners",
+    description: "Partners section heading",
+    icon: Globe2,
     fields: [
       { key: "partnersTitle", label: "Partners Section Title", localized: true },
       { key: "partnersSubtitle", label: "Partners Section Subtitle", localized: true },
@@ -233,7 +265,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "contact",
     title: "Contact",
-    description: "Contact section heading, gallery and company contact details.",
+    description: "Contact details, gallery & form fields",
+    icon: Contact,
     fields: [
       { key: "contactTitle", label: "Contact Section Title", localized: true },
       { key: "contactSubtitle", label: "Contact Section Subtitle", localized: true },
@@ -243,12 +276,18 @@ const SITE_SECTIONS: SiteSection[] = [
       { key: "address", label: "Address", localized: true, type: "textarea" },
       { key: "contactPhone", label: "Footer Contact Phone" },
       { key: "mobileWhatsapp", label: "Footer Mobile / WhatsApp Number" },
+      {
+        key: "inquiryForm",
+        label: "Contact Form Fields",
+        type: "inquiry-form",
+      },
     ],
   },
   {
     id: "sectionVisibility",
     title: "Section Visibility",
-    description: "Show or hide each homepage section on the live website.",
+    description: "Show or hide homepage sections",
+    icon: Eye,
     fields: [
       { key: "sectionVisibility.hero", label: "Show Hero", type: "boolean" },
       { key: "sectionVisibility.about", label: "Show About", type: "boolean" },
@@ -265,8 +304,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "footer",
     title: "Footer & Social",
-    description:
-      "Footer bio, social links, offices, and the dynamic footer navigation columns.",
+    description: "Footer bio, offices & social links",
+    icon: Share2,
     fields: [
       { key: "footerBio", label: "Footer Description", localized: true, type: "textarea" },
       { key: "socialLinks.whatsapp", label: "WhatsApp URL" },
@@ -286,7 +325,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "teamPage",
     title: "Team Page",
-    description: "Team page copy, statistics and design tools.",
+    description: "Team copy, stats & design tools",
+    icon: BriefcaseBusiness,
     fields: [
       { key: "teamPage.heroTitle", label: "Team Page Hero Title", localized: true },
       { key: "teamPage.heroSubtitle", label: "Team Page Hero Subtitle", localized: true },
@@ -304,7 +344,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "qualitySale",
     title: "Quality After Sales",
-    description: "Quality after-sales page copy, support steps and FAQs.",
+    description: "Support steps, gallery & FAQs",
+    icon: Wrench,
     fields: [
       { key: "qualitySale.heroTitle", label: "Quality Sale Hero Title", localized: true },
       { key: "qualitySale.heroSubtitle", label: "Quality Sale Hero Subtitle", localized: true },
@@ -321,7 +362,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "showcase",
     title: "Showcase",
-    description: "Heading and subtitle shown for each showcase tab.",
+    description: "Tab headings & subtitles",
+    icon: Images,
     fields: [
       { key: "showcaseMeta", label: "Showcase Tab Meta", type: "showcase-meta-list" },
     ],
@@ -329,7 +371,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "navigation",
     title: "Navigation & Search",
-    description: "Header menu, showcase mega menu, and navbar search result pages.",
+    description: "Header menu & search pages",
+    icon: Navigation,
     fields: [
       {
         key: "mainNavigation",
@@ -340,23 +383,10 @@ const SITE_SECTIONS: SiteSection[] = [
     ],
   },
   {
-    id: "inquiryForm",
-    title: "Inquiry Form",
-    description:
-      "Contact page and catalogue download form fields (labels, required flags, options).",
-    fields: [
-      {
-        key: "inquiryForm",
-        label: "Inquiry Form (JSON)",
-        type: "json",
-      },
-    ],
-  },
-  {
     id: "sectionCopy",
     title: "Section Headings",
-    description:
-      "Override the heading and subtitle for individual homepage sections.",
+    description: "Override homepage section titles",
+    icon: Type,
     fields: [
       { key: "sectionCopy.products.title", label: "Products Heading", localized: true },
       { key: "sectionCopy.products.subtitle", label: "Products Subheading", localized: true },
@@ -369,8 +399,8 @@ const SITE_SECTIONS: SiteSection[] = [
   {
     id: "interior",
     title: "Interior Catalogue",
-    description:
-      "Choose whether the interior listing shows only your CMS projects or merges them with the built-in samples.",
+    description: "CMS vs hybrid project source",
+    icon: LayoutGrid,
     fields: [
       {
         key: "interiorCatalogMode",
@@ -674,6 +704,12 @@ function VarsoviaManagerContent() {
         <FaqsInlineEditor />
       ) : active === "catalogues" ? (
         <CataloguesInlineEditor />
+      ) : active === "showcases" ? (
+        <ShowcasesInlineEditor />
+      ) : active === "team-members" ? (
+        <TeamInlineEditor />
+      ) : active === "partners" ? (
+        <PartnersInlineEditor />
       ) : (
         <ResourceManager resource={active as VarsoviaResource} />
       )}
@@ -681,11 +717,28 @@ function VarsoviaManagerContent() {
   );
 }
 
+function isVarsoviaSectionComplete(
+  section: SiteSection,
+  content: Record<string, unknown>,
+  locale: LocaleCode
+): boolean {
+  if (!section.fields.length) return false;
+  return section.fields.some((field) => {
+    const raw = getAtPath(content, field.key);
+    if (field.type === "boolean") return typeof raw === "boolean";
+    if (field.localized) return Boolean(localizedValue(raw, locale).trim());
+    if (Array.isArray(raw)) return raw.length > 0;
+    if (raw && typeof raw === "object") return Object.keys(raw as object).length > 0;
+    return Boolean(String(raw ?? "").trim());
+  });
+}
+
 function SiteSettings() {
   const [content, setContent] = useState<Record<string, unknown>>({});
   const [locale, setLocale] = useState<LocaleCode>("en");
+  const [active, setActive] = useState(SITE_SECTIONS[0]?.id || "hero");
   const [loadingContent, setLoadingContent] = useState(false);
-  const [savingContent, setSavingContent] = useState<string | null>(null);
+  const [savingContent, setSavingContent] = useState(false);
 
   const loadContent = useCallback(async () => {
     setLoadingContent(true);
@@ -719,100 +772,188 @@ function SiteSettings() {
     setContent(setAtPath(content, field.key, value));
   };
 
-  const saveContent = async (section?: SiteSection) => {
-    setSavingContent(section?.id ?? "all");
+  const saveContent = async () => {
+    setSavingContent(true);
     try {
       const updated = await updateVarsoviaSite(content);
       setContent(
-        mergeVarsoviaSiteDefaults(
-          normalizeRecord(updated as VarsoviaRecord)
-        )
+        mergeVarsoviaSiteDefaults(normalizeRecord(updated as VarsoviaRecord))
       );
-      toast.success(
-        section ? `${section.title} content saved` : "Varsovia website content updated"
-      );
+      toast.success("Varsovia website content updated");
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
-      setSavingContent(null);
+      setSavingContent(false);
     }
   };
 
+  const onResetPage = async () => {
+    if (!confirm("Reload site settings from the server and discard unsaved changes?")) {
+      return;
+    }
+    await loadContent();
+    toast.message("Reloaded from server");
+  };
+
+  const doneCount = useMemo(
+    () =>
+      SITE_SECTIONS.filter((section) =>
+        isVarsoviaSectionComplete(section, content, locale)
+      ).length,
+    [content, locale]
+  );
+
+  const activeSection =
+    SITE_SECTIONS.find((section) => section.id === active) || SITE_SECTIONS[0];
+  const complete = activeSection
+    ? isVarsoviaSectionComplete(activeSection, content, locale)
+    : false;
+
   return (
-    <section className="space-y-5">
-      <div>
-        <h2 className="text-xl font-bold">Site Settings</h2>
-        <p className="mt-1 text-sm text-[#6B7280]">
-          Manage multilingual Varsovia website content. Connected through your
-          admin login — same as Thailand Kitchen.
-        </p>
+    <section className="flex h-full min-h-0 flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold uppercase tracking-[0.1em] text-[#5C6370]">
+            Site Settings
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-semibold text-[#166534]">
+            <Check className="h-3.5 w-3.5" />
+            {doneCount} of {SITE_SECTIONS.length} Sections Ready
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void saveContent()}
+            disabled={savingContent || loadingContent}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243044] disabled:opacity-60"
+          >
+            <CloudUpload className="h-4 w-4" />
+            Update Site Page
+          </button>
+          <button
+            type="button"
+            onClick={() => void onResetPage()}
+            disabled={savingContent || loadingContent}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#FECACA] bg-white px-4 py-2.5 text-sm font-semibold text-[#DC2626] hover:bg-red-50 disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" />
+            Reset Page
+          </button>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-[#DDE1E7] bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E8EAED] px-5 py-4">
-          <div>
-            <h3 className="font-bold text-[#1A2332]">Website Content</h3>
-            <p className="mt-1 text-xs text-[#6B7280]">
-              Every field from the Varsovia site-content schema.
-            </p>
+      {loadingContent ? (
+        <p className="text-sm text-[#6B7280]">Loading sections…</p>
+      ) : (
+        <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-5 xl:grid-cols-[340px_1fr]">
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E8EAED] bg-white">
+            <div className="flex items-center justify-between border-b border-[#E8EAED] px-4 py-3">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#5C6370]">
+                Website Sections
+              </span>
+              <span className="text-xs font-semibold text-[#16A34A]">
+                {doneCount}/{SITE_SECTIONS.length} Done
+              </span>
+            </div>
+            <ul className="min-h-0 flex-1 divide-y divide-[#F0F1F3] overflow-y-auto">
+              {SITE_SECTIONS.map((section) => {
+                const selected = active === section.id;
+                const ok = isVarsoviaSectionComplete(section, content, locale);
+                const Icon = section.icon;
+                return (
+                  <li key={section.id}>
+                    <button
+                      type="button"
+                      onClick={() => setActive(section.id)}
+                      className={clsx(
+                        "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors",
+                        selected
+                          ? "border-l-[3px] border-l-[#1A2332] bg-[#F3F4F6]"
+                          : "border-l-[3px] border-l-transparent hover:bg-[#F9FAFB]"
+                      )}
+                    >
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EEF0F3]">
+                        <Icon className="h-4 w-4 text-[#1A2332]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[#1A2332]">
+                          {section.title}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-[#6B7280]">
+                          {section.description}
+                        </p>
+                      </div>
+                      {ok ? (
+                        <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#22C55E]">
+                          <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                        </span>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-          <div className="flex gap-2">
-            {LOCALES.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setLocale(item.id)}
-                className={`rounded-lg px-3 py-2 text-xs font-semibold ${
-                  locale === item.id
-                    ? "bg-[#1A2332] text-white"
-                    : "bg-[#F0F2F5] text-[#5C6370]"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {loadingContent ? (
-          <p className="p-6 text-sm text-[#6B7280]">Loading website content…</p>
-        ) : (
-          <div className="space-y-5 p-5">
-            {SITE_SECTIONS.map((section) => (
-              <div
-                key={section.id}
-                className="overflow-hidden rounded-xl border border-[#E8EAED]"
-              >
-                <div className="border-b border-[#E8EAED] bg-[#F9FAFB] px-4 py-3">
-                  <h4 className="text-sm font-bold text-[#1A2332]">
-                    {section.title}
-                  </h4>
-                  <p className="mt-0.5 text-xs text-[#6B7280]">
-                    {section.description}
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#E8EAED] bg-white">
+            <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-[#1A2332]">
+                    {activeSection.title}
+                  </h2>
+                  <p className="mt-0.5 text-sm text-[#6B7280]">
+                    {activeSection.description}
                   </p>
                 </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {LOCALES.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setLocale(item.id)}
+                      className={clsx(
+                        "rounded-lg px-3 py-1.5 text-xs font-semibold",
+                        locale === item.id
+                          ? "bg-[#1A2332] text-white"
+                          : "bg-[#F0F2F5] text-[#5C6370]"
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  {complete ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-xs font-semibold text-[#166534]">
+                      <Check className="h-3.5 w-3.5" />
+                      Complete
+                    </span>
+                  ) : null}
+                </div>
+              </div>
 
-                <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
-                  {section.fields.map((field) => {
-                    const raw = getAtPath(content, field.key);
-                    const structured =
-                      field.type === "string-list" ||
-                      field.type === "localized-string-list" ||
-                      field.type === "stats-list" ||
-                      field.type === "process-list" ||
-                      field.type === "faq-list" ||
-                      field.type === "showcase-meta-list" ||
-                      field.type === "tool-list" ||
-                      field.type === "spec-list" ||
-                      field.type === "content-sections" ||
-                      field.type === "strength-list" ||
-                      field.type === "office-list" ||
-                      field.type === "search-page-list" ||
-                      field.type === "footer-nav";
-                    const value = field.localized
-                      ? localizedValue(raw, locale)
-                      : structured
-                        ? raw
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {activeSection.fields.map((field) => {
+                  const raw = getAtPath(content, field.key);
+                  const structured =
+                    field.type === "string-list" ||
+                    field.type === "localized-string-list" ||
+                    field.type === "stats-list" ||
+                    field.type === "process-list" ||
+                    field.type === "faq-list" ||
+                    field.type === "showcase-meta-list" ||
+                    field.type === "tool-list" ||
+                    field.type === "spec-list" ||
+                    field.type === "content-sections" ||
+                    field.type === "strength-list" ||
+                    field.type === "office-list" ||
+                    field.type === "search-page-list" ||
+                    field.type === "footer-nav" ||
+                    field.type === "inquiry-form";
+                  const value = field.localized
+                    ? localizedValue(raw, locale)
+                    : structured
+                      ? raw
                       : field.type === "json"
                         ? raw === undefined
                           ? ""
@@ -821,47 +962,65 @@ function SiteSettings() {
                             : JSON.stringify(raw, null, 2)
                         : raw;
 
-                    return (
-                      <FieldControl
-                        key={`${field.key}-${field.localized ? locale : "shared"}`}
-                        field={field}
-                        value={value}
-                        locale={locale}
-                        onChange={(next) => {
-                          if (field.type !== "json") {
-                            updateContentField(field, next);
-                            return;
-                          }
-                          try {
-                            updateContentField(
-                              field,
-                              String(next).trim() ? JSON.parse(String(next)) : []
-                            );
-                          } catch {
-                            updateContentField(field, next);
-                          }
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-
-                <div className="flex justify-end border-t border-[#E8EAED] bg-[#FCFCFD] px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => void saveContent(section)}
-                    disabled={savingContent !== null}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    <Save size={16} />
-                    {savingContent === section.id ? "Saving…" : "Save Content"}
-                  </button>
-                </div>
+                  return (
+                    <FieldControl
+                      key={`${field.key}-${field.localized ? locale : "shared"}`}
+                      field={field}
+                      value={value}
+                      locale={locale}
+                      onChange={(next) => {
+                        if (field.type !== "json") {
+                          updateContentField(field, next);
+                          return;
+                        }
+                        try {
+                          updateContentField(
+                            field,
+                            String(next).trim() ? JSON.parse(String(next)) : []
+                          );
+                        } catch {
+                          updateContentField(field, next);
+                        }
+                      }}
+                    />
+                  );
+                })}
               </div>
-            ))}
+            </div>
+
+            <div className="flex items-center gap-2 border-t border-[#E8EAED] px-5 py-4">
+              <button
+                type="button"
+                onClick={() => void saveContent()}
+                disabled={savingContent}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243044] disabled:opacity-60"
+              >
+                <Save className="h-4 w-4" />
+                {savingContent ? "Saving…" : "Save Section"}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      "Reload this page from server (discard unsaved)?"
+                    )
+                  ) {
+                    return;
+                  }
+                  await loadContent();
+                  toast.message("Reloaded from server");
+                }}
+                disabled={savingContent || loadingContent}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#DC2626] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#B91C1C] disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                Reset Section
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -1181,6 +1340,1183 @@ function CataloguesInlineEditor() {
   );
 }
 
+type TeamDraft = {
+  clientKey: string;
+  _id?: string;
+  name: unknown;
+  role: unknown;
+  image: string;
+  teamType: "Italian" | "Headquarter";
+  order: number;
+};
+
+function toTeamDraft(item?: VarsoviaRecord, index = 0): TeamDraft {
+  const teamType =
+    item?.teamType === "Headquarter" ? "Headquarter" : "Italian";
+  return {
+    clientKey: item?._id || `team-new-${index}-${Date.now()}`,
+    _id: item?._id,
+    name: item?.name ?? emptyLocalized(),
+    role: item?.role ?? emptyLocalized(),
+    image: String(item?.image ?? ""),
+    teamType,
+    order: Number(item?.order ?? index) || index,
+  };
+}
+
+function TeamInlineEditor() {
+  const [drafts, setDrafts] = useState<TeamDraft[]>([]);
+  const [pageTitle, setPageTitle] = useState("Our Team");
+  const [subtitle, setSubtitle] = useState(
+    "The creative minds behind every beautiful space"
+  );
+  const [updatedLabel, setUpdatedLabel] = useState("");
+  const [siteSnapshot, setSiteSnapshot] = useState<Record<string, unknown>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [locale, setLocale] = useState<LocaleCode>("en");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [rows, site] = await Promise.all([
+        listVarsoviaRecords("team-members"),
+        getVarsoviaSite(),
+      ]);
+      const normalized = mergeVarsoviaSiteDefaults(
+        normalizeRecord(site as VarsoviaRecord)
+      );
+      setSiteSnapshot(normalized);
+      const teamPage =
+        normalized.teamPage && typeof normalized.teamPage === "object"
+          ? (normalized.teamPage as Record<string, unknown>)
+          : {};
+      setPageTitle(localizedValue(teamPage.heroTitle, "en") || "Our Team");
+      setSubtitle(
+        localizedValue(teamPage.heroSubtitle, "en") ||
+          "The creative minds behind every beautiful space"
+      );
+      setUpdatedLabel(String(normalized.teamUpdatedLabel ?? ""));
+      setDrafts(rows.map((item, index) => toTeamDraft(item, index)));
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const updateDraft = (clientKey: string, patch: Partial<TeamDraft>) => {
+    setDrafts((prev) =>
+      prev.map((item) =>
+        item.clientKey === clientKey ? { ...item, ...patch } : item
+      )
+    );
+  };
+
+  const addDraft = () => {
+    setDrafts((prev) => [...prev, toTeamDraft(undefined, prev.length)]);
+  };
+
+  const removeDraft = async (draft: TeamDraft) => {
+    if (draft._id) {
+      if (
+        !confirm(
+          `Remove "${localizedValue(draft.name, locale) || "team member"}"?`
+        )
+      ) {
+        return;
+      }
+      try {
+        await deleteVarsoviaRecord("team-members", draft._id);
+        toast.success("Team member deleted");
+      } catch (error) {
+        toast.error(errorMessage(error));
+        return;
+      }
+    }
+    setDrafts((prev) =>
+      prev.filter((item) => item.clientKey !== draft.clientKey)
+    );
+  };
+
+  const saveAll = async () => {
+    if (!pageTitle.trim()) {
+      toast.error("Page title is required");
+      return;
+    }
+    const invalid = drafts.some(
+      (draft) => !localizedValue(draft.name, "en").trim()
+    );
+    if (invalid) {
+      toast.error("Each section needs an English name");
+      setLocale("en");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const existingTeamPage =
+        siteSnapshot.teamPage && typeof siteSnapshot.teamPage === "object"
+          ? (siteSnapshot.teamPage as Record<string, unknown>)
+          : {};
+
+      await updateVarsoviaSite({
+        ...siteSnapshot,
+        teamUpdatedLabel: updatedLabel.trim(),
+        teamPage: {
+          ...existingTeamPage,
+          heroTitle: writeLocalizedField(
+            existingTeamPage.heroTitle,
+            "en",
+            pageTitle.trim()
+          ),
+          heroSubtitle: writeLocalizedField(
+            existingTeamPage.heroSubtitle,
+            "en",
+            subtitle.trim()
+          ),
+        },
+      });
+
+      for (let index = 0; index < drafts.length; index += 1) {
+        const draft = drafts[index];
+        const payload = {
+          name: draft.name,
+          role: draft.role,
+          image: draft.image,
+          teamType: draft.teamType,
+          order: index,
+        };
+        if (draft._id) {
+          await updateVarsoviaRecord("team-members", draft._id, payload);
+        } else {
+          await createVarsoviaRecord("team-members", payload);
+        }
+      }
+      toast.success("Team saved");
+      await load();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldClass =
+    "mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal";
+
+  return (
+    <section className="max-w-5xl space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#E8EAED] bg-white px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1A2332] text-white">
+            <BriefcaseBusiness className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-[#1A2332]">
+              Team Management
+            </h2>
+            <p className="mt-0.5 text-xs text-[#6B7280]">
+              Manage team page sections and member profiles
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={saving || loading}
+          onClick={() => void saveAll()}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" />
+          {saving ? "Saving…" : "Save Team"}
+        </button>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-[#E8EAED] bg-white p-5">
+        <div className="mb-1 flex flex-wrap gap-2">
+          {(["en", "th", "pl"] as LocaleCode[]).map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setLocale(code)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase ${
+                locale === code
+                  ? "bg-[#1A2332] text-white"
+                  : "bg-[#F3F4F6] text-[#5C6370]"
+              }`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="block text-xs font-semibold text-[#5C6370]">
+            Page Title
+            <input
+              required
+              value={pageTitle}
+              onChange={(event) => setPageTitle(event.target.value)}
+              className={fieldClass}
+            />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C6370]">
+            Subheading
+            <input
+              value={subtitle}
+              onChange={(event) => setSubtitle(event.target.value)}
+              className={fieldClass}
+            />
+          </label>
+        </div>
+        <label className="block text-xs font-semibold text-[#5C6370]">
+          Last Updated Date
+          <input
+            value={updatedLabel}
+            onChange={(event) => setUpdatedLabel(event.target.value)}
+            placeholder="July 2026"
+            className={fieldClass}
+          />
+        </label>
+
+        <div className="pt-2">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-[#1A2332]">
+                Team Content Sections
+              </h3>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                Add headings and details for each team member.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addDraft}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-3.5 py-2 text-sm font-semibold text-white"
+            >
+              <Plus className="h-4 w-4" />
+              Add Section Block
+            </button>
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-[#6B7280]">Loading…</p>
+          ) : (
+            <div className="space-y-4">
+              {drafts.map((draft, index) => (
+                <div
+                  key={draft.clientKey}
+                  className="space-y-3 rounded-xl border border-[#E8EAED] p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold tracking-wide text-[#334155]">
+                      SECTION #{index + 1}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void removeDraft(draft)}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#DC2626] hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove Section
+                    </button>
+                  </div>
+
+                  <label className="block text-xs font-semibold text-[#5C6370]">
+                    Section Heading
+                    <input
+                      value={localizedValue(draft.name, locale)}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          name: writeLocalizedField(
+                            draft.name,
+                            locale,
+                            event.target.value
+                          ),
+                        })
+                      }
+                      className={fieldClass}
+                    />
+                  </label>
+
+                  <label className="block text-xs font-semibold text-[#5C6370]">
+                    Section Content
+                    <textarea
+                      rows={4}
+                      value={localizedValue(draft.role, locale)}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          role: writeLocalizedField(
+                            draft.role,
+                            locale,
+                            event.target.value
+                          ),
+                        })
+                      }
+                      className={`${fieldClass} resize-y`}
+                    />
+                  </label>
+
+                  <label className="block text-xs font-semibold text-[#5C6370]">
+                    Team Type
+                    <select
+                      value={draft.teamType}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          teamType:
+                            event.target.value === "Headquarter"
+                              ? "Headquarter"
+                              : "Italian",
+                        })
+                      }
+                      className={fieldClass}
+                    >
+                      <option value="Italian">Italian (Design Team)</option>
+                      <option value="Headquarter">
+                        Headquarter (Architect / Engineers)
+                      </option>
+                    </select>
+                  </label>
+
+                  <MediaUpload
+                    label="Photo"
+                    kind="image"
+                    value={draft.image}
+                    onChange={(value) =>
+                      updateDraft(draft.clientKey, { image: value })
+                    }
+                    uploadFile={uploadVarsoviaMedia}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type PartnerDraft = {
+  clientKey: string;
+  _id?: string;
+  name: unknown;
+  logo: string;
+  website: string;
+  order: number;
+};
+
+function toPartnerDraft(item?: VarsoviaRecord, index = 0): PartnerDraft {
+  return {
+    clientKey: item?._id || `partner-new-${index}-${Date.now()}`,
+    _id: item?._id,
+    name: item?.name ?? emptyLocalized(),
+    logo: String(item?.logo ?? ""),
+    website: String(item?.website ?? ""),
+    order: Number(item?.order ?? index) || index,
+  };
+}
+
+function PartnersInlineEditor() {
+  const [drafts, setDrafts] = useState<PartnerDraft[]>([]);
+  const [pageTitle, setPageTitle] = useState("Our Global Partners");
+  const [subtitle, setSubtitle] = useState(
+    "Powered by trusted brands from around the world"
+  );
+  const [updatedLabel, setUpdatedLabel] = useState("");
+  const [siteSnapshot, setSiteSnapshot] = useState<Record<string, unknown>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [locale, setLocale] = useState<LocaleCode>("en");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [rows, site] = await Promise.all([
+        listVarsoviaRecords("partners"),
+        getVarsoviaSite(),
+      ]);
+      const normalized = mergeVarsoviaSiteDefaults(
+        normalizeRecord(site as VarsoviaRecord)
+      );
+      setSiteSnapshot(normalized);
+      setPageTitle(
+        localizedValue(normalized.partnersTitle, "en") || "Our Global Partners"
+      );
+      setSubtitle(
+        localizedValue(normalized.partnersSubtitle, "en") ||
+          "Powered by trusted brands from around the world"
+      );
+      setUpdatedLabel(String(normalized.partnersUpdatedLabel ?? ""));
+      setDrafts(rows.map((item, index) => toPartnerDraft(item, index)));
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const updateDraft = (clientKey: string, patch: Partial<PartnerDraft>) => {
+    setDrafts((prev) =>
+      prev.map((item) =>
+        item.clientKey === clientKey ? { ...item, ...patch } : item
+      )
+    );
+  };
+
+  const addDraft = () => {
+    setDrafts((prev) => [...prev, toPartnerDraft(undefined, prev.length)]);
+  };
+
+  const removeDraft = async (draft: PartnerDraft) => {
+    if (draft._id) {
+      if (
+        !confirm(
+          `Remove "${localizedValue(draft.name, locale) || "partner"}"?`
+        )
+      ) {
+        return;
+      }
+      try {
+        await deleteVarsoviaRecord("partners", draft._id);
+        toast.success("Partner deleted");
+      } catch (error) {
+        toast.error(errorMessage(error));
+        return;
+      }
+    }
+    setDrafts((prev) =>
+      prev.filter((item) => item.clientKey !== draft.clientKey)
+    );
+  };
+
+  const saveAll = async () => {
+    if (!pageTitle.trim()) {
+      toast.error("Page title is required");
+      return;
+    }
+    const invalid = drafts.some(
+      (draft) => !localizedValue(draft.name, "en").trim()
+    );
+    if (invalid) {
+      toast.error("Each section needs an English name");
+      setLocale("en");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await updateVarsoviaSite({
+        ...siteSnapshot,
+        partnersUpdatedLabel: updatedLabel.trim(),
+        partnersTitle: writeLocalizedField(
+          siteSnapshot.partnersTitle,
+          "en",
+          pageTitle.trim()
+        ),
+        partnersSubtitle: writeLocalizedField(
+          siteSnapshot.partnersSubtitle,
+          "en",
+          subtitle.trim()
+        ),
+      });
+
+      for (let index = 0; index < drafts.length; index += 1) {
+        const draft = drafts[index];
+        const payload = {
+          name: draft.name,
+          logo: draft.logo,
+          website: draft.website,
+          order: index,
+        };
+        if (draft._id) {
+          await updateVarsoviaRecord("partners", draft._id, payload);
+        } else {
+          await createVarsoviaRecord("partners", payload);
+        }
+      }
+      toast.success("Partners saved");
+      await load();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldClass =
+    "mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal";
+
+  return (
+    <section className="max-w-5xl space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#E8EAED] bg-white px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1A2332] text-white">
+            <Handshake className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-[#1A2332]">
+              Partners Management
+            </h2>
+            <p className="mt-0.5 text-xs text-[#6B7280]">
+              Manage partners section and brand logos
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={saving || loading}
+          onClick={() => void saveAll()}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" />
+          {saving ? "Saving…" : "Save Partners"}
+        </button>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-[#E8EAED] bg-white p-5">
+        <div className="mb-1 flex flex-wrap gap-2">
+          {(["en", "th", "pl"] as LocaleCode[]).map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setLocale(code)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase ${
+                locale === code
+                  ? "bg-[#1A2332] text-white"
+                  : "bg-[#F3F4F6] text-[#5C6370]"
+              }`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="block text-xs font-semibold text-[#5C6370]">
+            Page Title
+            <input
+              required
+              value={pageTitle}
+              onChange={(event) => setPageTitle(event.target.value)}
+              className={fieldClass}
+            />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C6370]">
+            Subheading
+            <input
+              value={subtitle}
+              onChange={(event) => setSubtitle(event.target.value)}
+              className={fieldClass}
+            />
+          </label>
+        </div>
+        <label className="block text-xs font-semibold text-[#5C6370]">
+          Last Updated Date
+          <input
+            value={updatedLabel}
+            onChange={(event) => setUpdatedLabel(event.target.value)}
+            placeholder="July 2026"
+            className={fieldClass}
+          />
+        </label>
+
+        <div className="pt-2">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-[#1A2332]">
+                Partners Content Sections
+              </h3>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                Add headings and logos for each partner brand.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addDraft}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-3.5 py-2 text-sm font-semibold text-white"
+            >
+              <Plus className="h-4 w-4" />
+              Add Section Block
+            </button>
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-[#6B7280]">Loading…</p>
+          ) : (
+            <div className="space-y-4">
+              {drafts.map((draft, index) => (
+                <div
+                  key={draft.clientKey}
+                  className="space-y-3 rounded-xl border border-[#E8EAED] p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold tracking-wide text-[#334155]">
+                      SECTION #{index + 1}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void removeDraft(draft)}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#DC2626] hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove Section
+                    </button>
+                  </div>
+
+                  <label className="block text-xs font-semibold text-[#5C6370]">
+                    Section Heading
+                    <input
+                      value={localizedValue(draft.name, locale)}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          name: writeLocalizedField(
+                            draft.name,
+                            locale,
+                            event.target.value
+                          ),
+                        })
+                      }
+                      className={fieldClass}
+                    />
+                  </label>
+
+                  <label className="block text-xs font-semibold text-[#5C6370]">
+                    Section Content
+                    <textarea
+                      rows={3}
+                      value={draft.website}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          website: event.target.value,
+                        })
+                      }
+                      placeholder="Website URL or partner notes"
+                      className={`${fieldClass} resize-y`}
+                    />
+                  </label>
+
+                  <MediaUpload
+                    label="Logo"
+                    kind="icon"
+                    value={draft.logo}
+                    onChange={(value) =>
+                      updateDraft(draft.clientKey, { logo: value })
+                    }
+                    uploadFile={uploadVarsoviaMedia}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type ShowcaseDraft = {
+  clientKey: string;
+  _id?: string;
+  title: unknown;
+  category: unknown;
+  location: unknown;
+  typeLabel: unknown;
+  typeValue: unknown;
+  supplyArea: unknown;
+  image: string;
+  gallery: string[];
+  visible: boolean;
+  order: number;
+};
+
+function toShowcaseDraft(item?: VarsoviaRecord, index = 0): ShowcaseDraft {
+  const gallery = Array.isArray(item?.gallery)
+    ? (item.gallery as unknown[]).map((url) => String(url ?? "")).filter(Boolean)
+    : [];
+  return {
+    clientKey: item?._id || `showcase-new-${index}-${Date.now()}`,
+    _id: item?._id,
+    title: item?.title ?? emptyLocalized(),
+    category: item?.category ?? emptyLocalized("Home case"),
+    location: item?.location ?? emptyLocalized(),
+    typeLabel: item?.typeLabel ?? emptyLocalized("Type"),
+    typeValue: item?.typeValue ?? emptyLocalized(),
+    supplyArea: item?.supplyArea ?? emptyLocalized(),
+    image: String(item?.image ?? ""),
+    gallery,
+    visible: item?.visible !== false,
+    order: Number(item?.order ?? index) || index,
+  };
+}
+
+function ShowcasesInlineEditor() {
+  const [drafts, setDrafts] = useState<ShowcaseDraft[]>([]);
+  const [pageTitle, setPageTitle] = useState("Our Showcase");
+  const [subtitle, setSubtitle] = useState("Every Space, Every Story");
+  const [updatedLabel, setUpdatedLabel] = useState("");
+  const [siteSnapshot, setSiteSnapshot] = useState<Record<string, unknown>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [locale, setLocale] = useState<LocaleCode>("en");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [rows, site] = await Promise.all([
+        listVarsoviaRecords("showcases"),
+        getVarsoviaSite(),
+      ]);
+      const normalized = mergeVarsoviaSiteDefaults(normalizeRecord(site as VarsoviaRecord));
+      setSiteSnapshot(normalized);
+
+      const meta = Array.isArray(normalized.showcaseMeta)
+        ? (normalized.showcaseMeta as Record<string, unknown>[])
+        : [];
+      const allMeta =
+        meta.find((entry) => String(entry.tabKey ?? "") === "All") || meta[0];
+      setPageTitle(localizedValue(allMeta?.title, "en") || "Our Showcase");
+      setSubtitle(
+        localizedValue(allMeta?.subtitle, "en") || "Every Space, Every Story"
+      );
+      setUpdatedLabel(String(normalized.showcaseUpdatedLabel ?? ""));
+      setDrafts(rows.map((item, index) => toShowcaseDraft(item, index)));
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const updateDraft = (clientKey: string, patch: Partial<ShowcaseDraft>) => {
+    setDrafts((prev) =>
+      prev.map((item) =>
+        item.clientKey === clientKey ? { ...item, ...patch } : item
+      )
+    );
+  };
+
+  const addDraft = () => {
+    setDrafts((prev) => [...prev, toShowcaseDraft(undefined, prev.length)]);
+  };
+
+  const removeDraft = async (draft: ShowcaseDraft) => {
+    if (draft._id) {
+      if (
+        !confirm(
+          `Remove "${localizedValue(draft.title, locale) || "showcase"}"?`
+        )
+      ) {
+        return;
+      }
+      try {
+        await deleteVarsoviaRecord("showcases", draft._id);
+        toast.success("Showcase deleted");
+      } catch (error) {
+        toast.error(errorMessage(error));
+        return;
+      }
+    }
+    setDrafts((prev) =>
+      prev.filter((item) => item.clientKey !== draft.clientKey)
+    );
+  };
+
+  const saveAll = async () => {
+    if (!pageTitle.trim()) {
+      toast.error("Page title is required");
+      return;
+    }
+    const invalid = drafts.some(
+      (draft) => !localizedValue(draft.title, "en").trim()
+    );
+    if (invalid) {
+      toast.error("Each section needs an English heading");
+      setLocale("en");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const existingMeta = Array.isArray(siteSnapshot.showcaseMeta)
+        ? (siteSnapshot.showcaseMeta as Record<string, unknown>[])
+        : [];
+      let metaUpdated = false;
+      const nextMeta = existingMeta.map((entry) => {
+        if (String(entry.tabKey ?? "") !== "All") return entry;
+        metaUpdated = true;
+        return {
+          ...entry,
+          title: writeLocalizedField(entry.title, "en", pageTitle.trim()),
+          subtitle: writeLocalizedField(entry.subtitle, "en", subtitle.trim()),
+        };
+      });
+      if (!metaUpdated) {
+        nextMeta.unshift({
+          tabKey: "All",
+          title: emptyLocalized(pageTitle.trim()),
+          subtitle: emptyLocalized(subtitle.trim()),
+          order: 0,
+        });
+      }
+
+      await updateVarsoviaSite({
+        ...siteSnapshot,
+        showcaseMeta: nextMeta,
+        showcaseUpdatedLabel: updatedLabel.trim(),
+      });
+
+      for (let index = 0; index < drafts.length; index += 1) {
+        const draft = drafts[index];
+        const payload = {
+          title: draft.title,
+          category: draft.category,
+          location: draft.location,
+          typeLabel: draft.typeLabel,
+          typeValue: draft.typeValue,
+          supplyArea: draft.supplyArea,
+          image: draft.image,
+          gallery: draft.gallery,
+          visible: draft.visible,
+          order: index,
+        };
+        if (draft._id) {
+          await updateVarsoviaRecord("showcases", draft._id, payload);
+        } else {
+          await createVarsoviaRecord("showcases", payload);
+        }
+      }
+      toast.success("Showcases saved");
+      await load();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldClass =
+    "mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal";
+
+  return (
+    <section className="space-y-5 max-w-5xl">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#E8EAED] bg-white px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1A2332] text-white">
+            <Images className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-[#1A2332]">
+              Showcases Management
+            </h2>
+            <p className="mt-0.5 text-xs text-[#6B7280]">
+              Manage showcase page sections and metadata
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={saving || loading}
+          onClick={() => void saveAll()}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" />
+          {saving ? "Saving…" : "Save Showcases"}
+        </button>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-[#E8EAED] bg-white p-5">
+        <div className="mb-1 flex flex-wrap gap-2">
+          {(["en", "th", "pl"] as LocaleCode[]).map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setLocale(code)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase ${
+                locale === code
+                  ? "bg-[#1A2332] text-white"
+                  : "bg-[#F3F4F6] text-[#5C6370]"
+              }`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="block text-xs font-semibold text-[#5C6370]">
+            Page Title
+            <input
+              required
+              value={pageTitle}
+              onChange={(event) => setPageTitle(event.target.value)}
+              className={fieldClass}
+            />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C6370]">
+            Subheading
+            <input
+              value={subtitle}
+              onChange={(event) => setSubtitle(event.target.value)}
+              className={fieldClass}
+            />
+          </label>
+        </div>
+        <label className="block text-xs font-semibold text-[#5C6370]">
+          Last Updated Date
+          <input
+            value={updatedLabel}
+            onChange={(event) => setUpdatedLabel(event.target.value)}
+            placeholder="July 2026"
+            className={fieldClass}
+          />
+        </label>
+
+        <div className="pt-2">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-[#1A2332]">
+                Showcase Content Sections
+              </h3>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                Add headings and details for each showcase project.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addDraft}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-3.5 py-2 text-sm font-semibold text-white"
+            >
+              <Plus className="h-4 w-4" />
+              Add Section Block
+            </button>
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-[#6B7280]">Loading…</p>
+          ) : (
+            <div className="space-y-4">
+              {drafts.map((draft, index) => (
+                <div
+                  key={draft.clientKey}
+                  className="space-y-3 rounded-xl border border-[#E8EAED] p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold tracking-wide text-[#334155]">
+                      SECTION #{index + 1}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void removeDraft(draft)}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#DC2626] hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove Section
+                    </button>
+                  </div>
+
+                  <label className="block text-xs font-semibold text-[#5C6370]">
+                    Section Heading
+                    <input
+                      value={localizedValue(draft.title, locale)}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          title: writeLocalizedField(
+                            draft.title,
+                            locale,
+                            event.target.value
+                          ),
+                        })
+                      }
+                      className={fieldClass}
+                    />
+                  </label>
+
+                  <label className="block text-xs font-semibold text-[#5C6370]">
+                    Section Content
+                    <textarea
+                      rows={4}
+                      value={localizedValue(draft.supplyArea, locale)}
+                      onChange={(event) =>
+                        updateDraft(draft.clientKey, {
+                          supplyArea: writeLocalizedField(
+                            draft.supplyArea,
+                            locale,
+                            event.target.value
+                          ),
+                        })
+                      }
+                      className={`${fieldClass} resize-y`}
+                    />
+                  </label>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="block text-xs font-semibold text-[#5C6370]">
+                      Category
+                      <input
+                        value={localizedValue(draft.category, locale)}
+                        onChange={(event) =>
+                          updateDraft(draft.clientKey, {
+                            category: writeLocalizedField(
+                              draft.category,
+                              locale,
+                              event.target.value
+                            ),
+                          })
+                        }
+                        placeholder="Home case"
+                        className={fieldClass}
+                      />
+                    </label>
+                    <label className="block text-xs font-semibold text-[#5C6370]">
+                      Location
+                      <input
+                        value={localizedValue(draft.location, locale)}
+                        onChange={(event) =>
+                          updateDraft(draft.clientKey, {
+                            location: writeLocalizedField(
+                              draft.location,
+                              locale,
+                              event.target.value
+                            ),
+                          })
+                        }
+                        className={fieldClass}
+                      />
+                    </label>
+                    <label className="block text-xs font-semibold text-[#5C6370]">
+                      Type Label
+                      <input
+                        value={localizedValue(draft.typeLabel, locale)}
+                        onChange={(event) =>
+                          updateDraft(draft.clientKey, {
+                            typeLabel: writeLocalizedField(
+                              draft.typeLabel,
+                              locale,
+                              event.target.value
+                            ),
+                          })
+                        }
+                        className={fieldClass}
+                      />
+                    </label>
+                    <label className="block text-xs font-semibold text-[#5C6370]">
+                      Type Value
+                      <input
+                        value={localizedValue(draft.typeValue, locale)}
+                        onChange={(event) =>
+                          updateDraft(draft.clientKey, {
+                            typeValue: writeLocalizedField(
+                              draft.typeValue,
+                              locale,
+                              event.target.value
+                            ),
+                          })
+                        }
+                        className={fieldClass}
+                      />
+                    </label>
+                  </div>
+
+                  <MediaUpload
+                    label="Cover Image"
+                    kind="image"
+                    value={draft.image}
+                    onChange={(value) =>
+                      updateDraft(draft.clientKey, { image: value })
+                    }
+                    uploadFile={uploadVarsoviaMedia}
+                  />
+
+                  <div>
+                    <p className="mb-1.5 text-xs font-semibold text-[#5C6370]">
+                      Gallery Images
+                    </p>
+                    <div className="space-y-2">
+                      {draft.gallery.map((url, galleryIndex) => (
+                        <div key={`${draft.clientKey}-g-${galleryIndex}`} className="flex gap-2">
+                          <input
+                            value={url}
+                            onChange={(event) => {
+                              const next = [...draft.gallery];
+                              next[galleryIndex] = event.target.value;
+                              updateDraft(draft.clientKey, { gallery: next });
+                            }}
+                            placeholder="Image URL or upload…"
+                            className="min-w-0 flex-1 rounded-lg border border-[#E2E5EA] px-3 py-2 text-sm"
+                          />
+                          <InlineUploadButton
+                            kind="image"
+                            onUploaded={(uploaded) => {
+                              const next = [...draft.gallery];
+                              next[galleryIndex] = uploaded;
+                              updateDraft(draft.clientKey, { gallery: next });
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateDraft(draft.clientKey, {
+                                gallery: draft.gallery.filter(
+                                  (_, i) => i !== galleryIndex
+                                ),
+                              })
+                            }
+                            className="rounded-lg px-2 text-xs font-semibold text-[#DC2626] hover:bg-red-50"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateDraft(draft.clientKey, {
+                            gallery: [...draft.gallery, ""],
+                          })
+                        }
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1A2332]"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add gallery image
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const FAQ_TOPICS = [
+  "Kitchen Interior",
+  "Bedroom Interior",
+  "Living Room",
+  "Bathroom Interior",
+  "Doors & Windows",
+  "Furniture",
+  "Whole Home",
+] as const;
+
+type FaqTopic = (typeof FAQ_TOPICS)[number];
+
 type FaqDraft = {
   clientKey: string;
   _id?: string;
@@ -1191,15 +2527,54 @@ type FaqDraft = {
   order: number;
 };
 
-function toFaqDraft(item?: VarsoviaRecord, index = 0): FaqDraft {
+function faqCategoryLabel(category: unknown, locale: LocaleCode = "en"): string {
+  const value = localizedValue(category, locale).trim();
+  if (value) return value;
+  const en = localizedValue(category, "en").trim();
+  return en;
+}
+
+function resolveFaqTopic(
+  category: unknown,
+  fallback: FaqTopic = FAQ_TOPICS[0]
+): FaqTopic {
+  const label = faqCategoryLabel(category, "en");
+  if (FAQ_TOPICS.includes(label as FaqTopic)) return label as FaqTopic;
+  const match = FAQ_TOPICS.find(
+    (topic) => topic.toLowerCase() === label.toLowerCase()
+  );
+  return match || fallback;
+}
+
+function toFaqDraft(
+  item?: VarsoviaRecord,
+  index = 0,
+  fallbackCategory: FaqTopic = FAQ_TOPICS[0]
+): FaqDraft {
+  if (!item) {
+    return {
+      clientKey: `faq-new-${index}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      question: emptyLocalized(),
+      answer: emptyLocalized(),
+      category: emptyLocalized(fallbackCategory),
+      visible: true,
+      order: index,
+    };
+  }
+
+  const category = resolveFaqTopic(item.category, fallbackCategory);
+  const hasCategoryValue = Boolean(faqCategoryLabel(item.category, "en"));
+
   return {
-    clientKey: item?._id || `faq-new-${index}-${Date.now()}`,
-    _id: item?._id,
-    question: item?.question ?? emptyLocalized(),
-    answer: item?.answer ?? emptyLocalized(),
-    category: item?.category ?? emptyLocalized(),
-    visible: item?.visible !== false,
-    order: Number(item?.order ?? index) || index,
+    clientKey: item._id || `faq-new-${index}-${Date.now()}`,
+    _id: item._id,
+    question: item.question ?? emptyLocalized(),
+    answer: item.answer ?? emptyLocalized(),
+    category: hasCategoryValue
+      ? item.category ?? emptyLocalized(category)
+      : emptyLocalized(category),
+    visible: item.visible !== false,
+    order: Number(item.order ?? index) || index,
   };
 }
 
@@ -1208,6 +2583,7 @@ function FaqsInlineEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [locale, setLocale] = useState<LocaleCode>("en");
+  const [activeTopic, setActiveTopic] = useState<FaqTopic>(FAQ_TOPICS[0]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1225,6 +2601,24 @@ function FaqsInlineEditor() {
     void load();
   }, [load]);
 
+  const topicCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const topic of FAQ_TOPICS) counts[topic] = 0;
+    for (const draft of drafts) {
+      const topic = resolveFaqTopic(draft.category);
+      counts[topic] = (counts[topic] || 0) + 1;
+    }
+    return counts;
+  }, [drafts]);
+
+  const topicDrafts = useMemo(
+    () =>
+      drafts.filter(
+        (draft) => resolveFaqTopic(draft.category) === activeTopic
+      ),
+    [drafts, activeTopic]
+  );
+
   const complete = drafts.length >= 1;
 
   const updateDraft = (clientKey: string, patch: Partial<FaqDraft>) => {
@@ -1236,7 +2630,44 @@ function FaqsInlineEditor() {
   };
 
   const addDraft = () => {
-    setDrafts((prev) => [...prev, toFaqDraft(undefined, prev.length)]);
+    const topic = activeTopic;
+    setDrafts((prev) => [
+      ...prev,
+      {
+        clientKey: `faq-new-${topic}-${prev.length}-${Date.now()}`,
+        question: emptyLocalized(),
+        answer: emptyLocalized(),
+        category: emptyLocalized(topic),
+        visible: true,
+        order: prev.length,
+      },
+    ]);
+  };
+
+  const isFaqBlank = (draft: FaqDraft) =>
+    !localizedValue(draft.question, "en").trim() &&
+    !localizedValue(draft.answer, "en").trim() &&
+    !localizedValue(draft.question, locale).trim() &&
+    !localizedValue(draft.answer, locale).trim();
+
+  const ensureEnglishCopy = (value: unknown) => {
+    if (localizedValue(value, "en").trim()) return value;
+    const fromLocale = localizedValue(value, locale).trim();
+    if (!fromLocale) return value;
+    return writeLocalizedField(value, "en", fromLocale);
+  };
+
+  const selectTopic = (topic: FaqTopic) => {
+    // Drop unfinished blank FAQs when leaving a topic so they don't block later saves
+    setDrafts((prev) =>
+      prev.filter(
+        (draft) =>
+          draft._id ||
+          resolveFaqTopic(draft.category) === topic ||
+          !isFaqBlank(draft)
+      )
+    );
+    setActiveTopic(topic);
   };
 
   const removeDraft = async (draft: FaqDraft) => {
@@ -1260,35 +2691,68 @@ function FaqsInlineEditor() {
   };
 
   const saveAll = async () => {
-    const invalid = drafts.some(
-      (draft) =>
-        !localizedValue(draft.question, "en").trim() ||
-        !localizedValue(draft.answer, "en").trim()
+    // Save only the active topic — same pattern as other CMS sections
+    const currentDrafts = drafts.filter(
+      (draft) => resolveFaqTopic(draft.category) === activeTopic
     );
+
+    // Ignore brand-new blank rows; require Q&A for anything being saved
+    const toSave = currentDrafts.filter((draft) => !isFaqBlank(draft) || Boolean(draft._id));
+
+    const invalid = toSave.find((draft) => {
+      const question = ensureEnglishCopy(draft.question);
+      const answer = ensureEnglishCopy(draft.answer);
+      return (
+        !localizedValue(question, "en").trim() ||
+        !localizedValue(answer, "en").trim()
+      );
+    });
     if (invalid) {
-      toast.error("Each FAQ needs an English question and answer");
+      toast.error(
+        `Fill in question and answer for ${activeTopic} (English required — use the EN tab)`
+      );
       setLocale("en");
+      return;
+    }
+
+    if (toSave.length === 0 && currentDrafts.length === 0) {
+      toast.message(`No FAQs to save for ${activeTopic}`);
       return;
     }
 
     try {
       setSaving(true);
-      for (let index = 0; index < drafts.length; index += 1) {
-        const draft = drafts[index];
+      // Keep topic blocks ordered: Kitchen 0–99, Bedroom 100–199, …
+      let order = FAQ_TOPICS.indexOf(activeTopic) * 100;
+
+      for (const draft of toSave) {
         const payload = {
-          question: draft.question,
-          answer: draft.answer,
-          category: draft.category,
-          visible: draft.visible,
-          order: index,
+          question: ensureEnglishCopy(draft.question),
+          answer: ensureEnglishCopy(draft.answer),
+          category: activeTopic,
+          order,
         };
+        order += 1;
         if (draft._id) {
           await updateVarsoviaRecord("faqs", draft._id, payload);
         } else {
           await createVarsoviaRecord("faqs", payload);
         }
       }
-      toast.success("FAQs saved");
+
+      // Remove blank new drafts for this topic from local state
+      setDrafts((prev) =>
+        prev.filter(
+          (draft) =>
+            !(
+              !draft._id &&
+              resolveFaqTopic(draft.category) === activeTopic &&
+              isFaqBlank(draft)
+            )
+        )
+      );
+
+      toast.success(`${activeTopic} FAQs saved`);
       await load();
     } catch (error) {
       toast.error(errorMessage(error));
@@ -1307,7 +2771,7 @@ function FaqsInlineEditor() {
           <div>
             <h2 className="text-lg font-bold text-[#1A2332]">FAQ Section</h2>
             <p className="mt-0.5 text-sm text-[#6B7280]">
-              Frequently asked questions
+              Frequently asked questions by topic
             </p>
           </div>
           {complete ? (
@@ -1338,72 +2802,148 @@ function FaqsInlineEditor() {
         {loading ? (
           <p className="text-sm text-[#6B7280]">Loading…</p>
         ) : (
-          <div className="space-y-4">
-            {drafts.map((draft, index) => (
-              <div
-                key={draft.clientKey}
-                className="space-y-3 rounded-xl border border-[#E8EAED] p-4"
-              >
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    className="text-xs text-red-600"
-                    onClick={() => void removeDraft(draft)}
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
-                    Question #{index + 1}
-                  </label>
-                  <input
-                    type="text"
-                    value={localizedValue(draft.question, locale)}
-                    onChange={(event) =>
-                      updateDraft(draft.clientKey, {
-                        question: writeLocalizedField(
-                          draft.question,
-                          locale,
-                          event.target.value
-                        ),
-                      })
-                    }
-                    className={fieldClass}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
-                    Answer
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={localizedValue(draft.answer, locale)}
-                    onChange={(event) =>
-                      updateDraft(draft.clientKey, {
-                        answer: writeLocalizedField(
-                          draft.answer,
-                          locale,
-                          event.target.value
-                        ),
-                      })
-                    }
-                    className={`${fieldClass} resize-y`}
-                  />
-                </div>
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[260px_1fr]">
+            <div className="overflow-hidden rounded-xl border border-[#E8EAED]">
+              <div className="border-b border-[#E8EAED] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#5C6370]">
+                  Topic
+                </p>
               </div>
-            ))}
+              <ul className="divide-y divide-[#F0F1F3]">
+                {FAQ_TOPICS.map((topic) => {
+                  const selected = activeTopic === topic;
+                  const count = topicCounts[topic] || 0;
+                  return (
+                    <li key={topic}>
+                      <button
+                        type="button"
+                        onClick={() => selectTopic(topic)}
+                        className={clsx(
+                          "flex w-full items-center gap-2 px-4 py-3 text-left text-sm transition-colors",
+                          selected
+                            ? "border-l-[3px] border-l-[#1A2332] bg-[#F3F4F6] font-semibold text-[#1A2332]"
+                            : "border-l-[3px] border-l-transparent font-medium text-[#5C6370] hover:bg-[#F9FAFB]"
+                        )}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{topic}</span>
+                        <span className="rounded-full bg-[#EEF0F3] px-2 py-0.5 text-[11px] font-semibold text-[#5C6370]">
+                          {count}
+                        </span>
+                        <span className="text-[#9CA3AF]">›</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
 
-            <button
-              type="button"
-              onClick={addDraft}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#CBD5E1] px-3 py-2 text-xs font-semibold text-[#1A2332] hover:bg-[#F8FAFC]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add FAQ
-            </button>
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-[#1A2332]">
+                    Questions & Answer
+                  </h3>
+                  <p className="mt-0.5 text-xs text-[#6B7280]">
+                    Editing FAQs for {activeTopic}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addDraft}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#CBD5E1] px-3 py-2 text-xs font-semibold text-[#1A2332] hover:bg-[#F8FAFC]"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add FAQ
+                </button>
+              </div>
+
+              {topicDrafts.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#E2E5EA] px-4 py-8 text-center text-sm text-[#6B7280]">
+                  No FAQs in this topic yet. Click Add FAQ to create one.
+                </div>
+              ) : (
+                topicDrafts.map((draft, index) => (
+                  <div
+                    key={draft.clientKey}
+                    className="space-y-3 rounded-xl border border-[#E8EAED] p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold tracking-wide text-[#334155]">
+                        Question #{index + 1}
+                      </p>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-red-600"
+                        onClick={() => void removeDraft(draft)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                        Question
+                      </label>
+                      <input
+                        type="text"
+                        value={localizedValue(draft.question, locale)}
+                        onChange={(event) =>
+                          updateDraft(draft.clientKey, {
+                            question: writeLocalizedField(
+                              draft.question,
+                              locale,
+                              event.target.value
+                            ),
+                          })
+                        }
+                        className={fieldClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-[#5C6370]">
+                        Answer
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={localizedValue(draft.answer, locale)}
+                        onChange={(event) =>
+                          updateDraft(draft.clientKey, {
+                            answer: writeLocalizedField(
+                              draft.answer,
+                              locale,
+                              event.target.value
+                            ),
+                          })
+                        }
+                        className={`${fieldClass} resize-y`}
+                      />
+                    </div>
+
+                    <label className="block text-xs font-semibold text-[#5C6370]">
+                      Category
+                      <select
+                        value={resolveFaqTopic(draft.category)}
+                        onChange={(event) => {
+                          const nextTopic = event.target.value as FaqTopic;
+                          updateDraft(draft.clientKey, {
+                            category: emptyLocalized(nextTopic),
+                          });
+                          selectTopic(nextTopic);
+                        }}
+                        className={`${fieldClass} mt-1.5`}
+                      >
+                        {FAQ_TOPICS.map((topic) => (
+                          <option key={topic} value={topic}>
+                            {topic}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
 
@@ -1415,7 +2955,7 @@ function FaqsInlineEditor() {
             className="inline-flex items-center gap-2 rounded-lg bg-[#1A2332] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#243044] disabled:opacity-60"
           >
             <Save className="h-4 w-4" />
-            {saving ? "Saving…" : "Save Section"}
+            {saving ? "Saving…" : `Save ${activeTopic}`}
           </button>
           <button
             type="button"
@@ -2269,7 +3809,8 @@ function ResourceManager({ resource }: { resource: VarsoviaResource }) {
                     field.type === "strength-list" ||
                     field.type === "office-list" ||
                     field.type === "search-page-list" ||
-                    field.type === "footer-nav";
+                    field.type === "footer-nav" ||
+                    field.type === "inquiry-form";
                   const raw = getAtPath(form, field.key);
                   const value = structured
                     ? raw
@@ -3616,6 +5157,340 @@ function FieldControl({
             (nextLinks) => patchNav({ legalLinks: nextLinks }),
             "Add legal link"
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (field.type === "inquiry-form") {
+    const defaultForm =
+      (VARSOVIA_SITE_DEFAULTS.inquiryForm as Record<string, unknown>) || {};
+    const form: Record<string, unknown> =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : structuredClone(defaultForm);
+    const formFields = (
+      Array.isArray(form.fields) ? form.fields : []
+    ).map((item) =>
+      item && typeof item === "object"
+        ? (item as Record<string, unknown>)
+        : {}
+    );
+    const inquiryFieldTypes = [
+      "name",
+      "text",
+      "email",
+      "phone",
+      "whatsapp",
+      "textarea",
+      "select",
+      "place",
+    ] as const;
+
+    const patchForm = (next: Record<string, unknown>) => onChange(next);
+    const patchFields = (nextFields: Record<string, unknown>[]) =>
+      patchForm({
+        ...form,
+        version: form.version ?? 1,
+        fields: nextFields.map((entry, index) => ({
+          ...entry,
+          order: index + 1,
+        })),
+      });
+    const updateFieldAt = (
+      index: number,
+      updater: (current: Record<string, unknown>) => Record<string, unknown>
+    ) =>
+      patchFields(
+        formFields.map((current, i) => (i === index ? updater(current) : current))
+      );
+    const moveField = (index: number, direction: -1 | 1) => {
+      const target = index + direction;
+      if (target < 0 || target >= formFields.length) return;
+      const next = [...formFields];
+      [next[index], next[target]] = [next[target], next[index]];
+      patchFields(next);
+    };
+
+    return (
+      <div className="md:col-span-2">
+        <FieldLabel field={field} />
+        <p className="mb-3 text-xs text-[#6B7280]">
+          Labels and placeholders match the website contact / catalogue form.
+          Switch language tabs above to edit Thai or Polish copy.
+        </p>
+        <div className="mb-4 rounded-xl border border-[#E2E5EA] bg-[#FAFBFC] p-4">
+          <SmallInput
+            label="Submit button label"
+            value={localizedValue(form.submitLabel, locale)}
+            onChange={(next) =>
+              patchForm(setEntryLocalized(form, "submitLabel", next))
+            }
+          />
+        </div>
+        <div className="space-y-3">
+          {formFields.map((entry, index) => {
+            const options = Array.isArray(entry.options)
+              ? entry.options.map((opt) =>
+                  opt && typeof opt === "object"
+                    ? (opt as Record<string, unknown>)
+                    : {}
+                )
+              : [];
+            const fieldType = String(entry.type ?? "text");
+            return (
+              <div
+                key={`${String(entry.key || "field")}-${index}`}
+                className="rounded-xl border border-[#E2E5EA] bg-[#FAFBFC] p-4"
+              >
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-xs font-bold text-[#5C6370]">
+                    Field {index + 1}
+                    {entry.key ? ` · ${String(entry.key)}` : ""}
+                  </span>
+                  <ListButtons
+                    index={index}
+                    length={formFields.length}
+                    onMove={moveField}
+                    onRemove={() =>
+                      patchFields(formFields.filter((_, i) => i !== index))
+                    }
+                  />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <SmallInput
+                    label="Storage key"
+                    value={String(entry.key ?? "")}
+                    onChange={(next) =>
+                      updateFieldAt(index, (current) => ({
+                        ...current,
+                        key: next.replace(/[^a-zA-Z0-9_]/g, ""),
+                      }))
+                    }
+                  />
+                  <label>
+                    <span className="mb-1 block text-[11px] font-semibold uppercase text-[#6B7280]">
+                      Field type
+                    </span>
+                    <select
+                      value={fieldType}
+                      onChange={(event) =>
+                        updateFieldAt(index, (current) => ({
+                          ...current,
+                          type: event.target.value,
+                          options:
+                            event.target.value === "select"
+                              ? Array.isArray(current.options)
+                                ? current.options
+                                : [
+                                    {
+                                      value: "option_1",
+                                      label: { en: "Option 1" },
+                                    },
+                                  ]
+                              : undefined,
+                        }))
+                      }
+                      className="w-full rounded-lg border border-[#DDE1E7] px-3 py-2 text-sm outline-none focus:border-[#1A2332]"
+                    >
+                      {inquiryFieldTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <SmallInput
+                    label="Label"
+                    value={localizedValue(entry.label, locale)}
+                    onChange={(next) =>
+                      updateFieldAt(index, (current) =>
+                        setEntryLocalized(current, "label", next)
+                      )
+                    }
+                  />
+                  <SmallInput
+                    label="Placeholder"
+                    value={localizedValue(entry.placeholder, locale)}
+                    onChange={(next) =>
+                      updateFieldAt(index, (current) =>
+                        setEntryLocalized(current, "placeholder", next)
+                      )
+                    }
+                  />
+                  <label>
+                    <span className="mb-1 block text-[11px] font-semibold uppercase text-[#6B7280]">
+                      Width
+                    </span>
+                    <select
+                      value={entry.width === "half" ? "half" : "full"}
+                      onChange={(event) =>
+                        updateFieldAt(index, (current) => ({
+                          ...current,
+                          width: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-lg border border-[#DDE1E7] px-3 py-2 text-sm outline-none focus:border-[#1A2332]"
+                    >
+                      <option value="full">Full width</option>
+                      <option value="half">Half width</option>
+                    </select>
+                  </label>
+                  <div className="flex flex-wrap items-end gap-4 pb-1">
+                    <label className="inline-flex items-center gap-2 text-sm text-[#374151]">
+                      <input
+                        type="checkbox"
+                        checked={entry.required === true}
+                        onChange={(event) =>
+                          updateFieldAt(index, (current) => ({
+                            ...current,
+                            required: event.target.checked,
+                          }))
+                        }
+                      />
+                      Required
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm text-[#374151]">
+                      <input
+                        type="checkbox"
+                        checked={entry.enabled !== false}
+                        onChange={(event) =>
+                          updateFieldAt(index, (current) => ({
+                            ...current,
+                            enabled: event.target.checked,
+                          }))
+                        }
+                      />
+                      Visible on website
+                    </label>
+                    {fieldType === "phone" ? (
+                      <label className="inline-flex items-center gap-2 text-sm text-[#374151]">
+                        <input
+                          type="checkbox"
+                          checked={entry.useLocaleDialCode !== false}
+                          onChange={(event) =>
+                            updateFieldAt(index, (current) => ({
+                              ...current,
+                              useLocaleDialCode: event.target.checked,
+                            }))
+                          }
+                        />
+                        Locale dial code
+                      </label>
+                    ) : null}
+                  </div>
+                </div>
+                {fieldType === "select" ? (
+                  <div className="mt-4 space-y-2 border-t border-[#E8EAED] pt-3">
+                    <p className="text-[11px] font-semibold uppercase text-[#6B7280]">
+                      Dropdown options
+                    </p>
+                    {options.map((opt, optIndex) => (
+                      <div
+                        key={optIndex}
+                        className="grid gap-2 rounded-lg border border-[#E8EAED] bg-white p-3 md:grid-cols-[1fr_1fr_auto]"
+                      >
+                        <SmallInput
+                          label="Stored value"
+                          value={String(opt.value ?? "")}
+                          onChange={(next) =>
+                            updateFieldAt(index, (current) => {
+                              const nextOptions = [
+                                ...(Array.isArray(current.options)
+                                  ? (current.options as Record<string, unknown>[])
+                                  : []),
+                              ];
+                              nextOptions[optIndex] = {
+                                ...nextOptions[optIndex],
+                                value: next,
+                              };
+                              return { ...current, options: nextOptions };
+                            })
+                          }
+                        />
+                        <SmallInput
+                          label="Option label"
+                          value={localizedValue(opt.label, locale)}
+                          onChange={(next) =>
+                            updateFieldAt(index, (current) => {
+                              const nextOptions = [
+                                ...(Array.isArray(current.options)
+                                  ? (current.options as Record<string, unknown>[])
+                                  : []),
+                              ];
+                              nextOptions[optIndex] = setEntryLocalized(
+                                nextOptions[optIndex] || {},
+                                "label",
+                                next
+                              );
+                              return { ...current, options: nextOptions };
+                            })
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateFieldAt(index, (current) => ({
+                              ...current,
+                              options: (
+                                Array.isArray(current.options)
+                                  ? (current.options as unknown[])
+                                  : []
+                              ).filter((_, i) => i !== optIndex),
+                            }))
+                          }
+                          className="mt-5 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#FECACA] text-[#B91C1C]"
+                          aria-label="Remove option"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateFieldAt(index, (current) => ({
+                          ...current,
+                          options: [
+                            ...(Array.isArray(current.options)
+                              ? (current.options as unknown[])
+                              : []),
+                            {
+                              value: `option_${options.length + 1}`,
+                              label: { en: `Option ${options.length + 1}` },
+                            },
+                          ],
+                        }))
+                      }
+                      className="inline-flex items-center gap-2 rounded-lg border border-dashed border-[#B9C0CA] px-3 py-2 text-xs font-semibold text-[#5C6370]"
+                    >
+                      <Plus size={14} /> Add option
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() =>
+              patchFields([
+                ...formFields,
+                {
+                  key: `field_${formFields.length + 1}`,
+                  type: "text",
+                  label: { en: "New Field" },
+                  placeholder: { en: "" },
+                  required: false,
+                  width: "full",
+                  enabled: true,
+                },
+              ])
+            }
+            className="inline-flex items-center gap-2 rounded-lg border border-dashed border-[#B9C0CA] px-3 py-2 text-xs font-semibold text-[#5C6370]"
+          >
+            <Plus size={14} /> Add form field
+          </button>
         </div>
       </div>
     );

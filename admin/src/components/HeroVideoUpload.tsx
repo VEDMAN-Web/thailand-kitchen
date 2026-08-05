@@ -57,8 +57,8 @@ export default function HeroVideoUpload({
 
   const onFile = async (file?: File | null) => {
     if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error("Video must be 20MB or smaller");
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Video must be 50MB or smaller");
       return;
     }
     setUploading(true);
@@ -159,7 +159,7 @@ export default function HeroVideoUpload({
               : "Click or Drag to upload video file"}
           </p>
           <p className="mt-1 text-xs text-[#9CA3AF]">
-            MP4, WebM, OGG, MOV (Max 20MB)
+            MP4, WebM, OGG, MOV (Max 50MB)
           </p>
           <input
             ref={inputRef}

@@ -26,7 +26,41 @@ import MediaUpload from "@/components/MediaUpload";
 
 type FeatureHighlight = { title: string; description: string };
 
-const empty = {
+type ProductForm = {
+  title: string;
+  slug: string;
+  subtitle: string;
+  productType: string;
+  sectionTag: string;
+  description: string;
+  image: string;
+  icon: string;
+  gallery: string[];
+  pdfUrl: string;
+  category: string;
+  featureHighlights: FeatureHighlight[];
+  featured: boolean;
+};
+
+const DEFAULT_FEATURE_HIGHLIGHTS: FeatureHighlight[] = [
+  {
+    title: "Matte Obsidian Finish",
+    description:
+      "A deep, light-absorbing lacquer that keeps surfaces calm and fingerprints discreet in daily living.",
+  },
+  {
+    title: "Artisanal Gold Hardware",
+    description:
+      "Hand-finished pulls and hinges that catch soft light and complete the dark timber silhouette.",
+  },
+  {
+    title: "Imperial Marble Worktops",
+    description:
+      "Thick stone slabs with natural veining, sealed for lasting kitchen use and a quiet luxury feel.",
+  },
+];
+
+const empty: ProductForm = {
   title: "",
   slug: "",
   subtitle: "",
@@ -35,16 +69,10 @@ const empty = {
   description: "",
   image: "/products/Kitchen2.png",
   icon: "",
-  gallery1: "",
-  gallery2: "",
+  gallery: ["", ""],
   pdfUrl: "",
   category: "",
-  feature1Title: "",
-  feature1Description: "",
-  feature2Title: "",
-  feature2Description: "",
-  feature3Title: "",
-  feature3Description: "",
+  featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS.map((h) => ({ ...h })),
   featured: false,
 };
 
@@ -56,6 +84,7 @@ export default function AdminProductsPage() {
   const [editing, setEditing] = useState<ProductItem | null>(null);
   const [form, setForm] = useState(empty);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [saveArmed, setSaveArmed] = useState(false);
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All categories");
 
@@ -79,12 +108,18 @@ export default function AdminProductsPage() {
     setForm(empty);
     setEditing(null);
     setStep(1);
+    setSaveArmed(false);
     setModal("create");
   };
 
   const openEdit = (item: ProductItem) => {
-    const highlights = item.featureHighlights || [];
-    const gallery = item.gallery || [];
+    const highlights = (item.featureHighlights || [])
+      .map((h) => ({
+        title: h.title || "",
+        description: h.description || "",
+      }))
+      .filter((h) => h.title.trim() || h.description.trim());
+    const gallery = (item.gallery || []).map((s) => String(s || "").trim()).filter(Boolean);
     setEditing(item);
     setForm({
       title: item.title,
@@ -95,30 +130,33 @@ export default function AdminProductsPage() {
       description: item.description,
       image: item.image,
       icon: item.icon || "",
-      gallery1: gallery[0] || "",
-      gallery2: gallery[1] || "",
+      gallery: gallery.length ? gallery : ["", ""],
       pdfUrl: item.pdfUrl || "",
       category: item.category,
-      feature1Title: highlights[0]?.title || "",
-      feature1Description: highlights[0]?.description || "",
-      feature2Title: highlights[1]?.title || "",
-      feature2Description: highlights[1]?.description || "",
-      feature3Title: highlights[2]?.title || "",
-      feature3Description: highlights[2]?.description || "",
+      featureHighlights: highlights.length
+        ? highlights
+        : DEFAULT_FEATURE_HIGHLIGHTS.map((h) => ({ ...h })),
       featured: item.featured,
     });
     setStep(1);
+    setSaveArmed(false);
     setModal("edit");
   };
 
   const closeModal = () => {
     setModal(null);
     setStep(1);
+    setSaveArmed(false);
   };
 
   const validateStep = (target: 1 | 2 | 3) => {
     if (target === 2) {
-      if (!form.title.trim() || !form.subtitle.trim() || !form.productType.trim() || !form.category.trim()) {
+      if (
+        !form.title.trim() ||
+        !form.subtitle.trim() ||
+        !form.productType.trim() ||
+        !form.category.trim()
+      ) {
         toast.error("Please fill all required fields in Product Identity");
         return false;
       }
@@ -132,25 +170,59 @@ export default function AdminProductsPage() {
     return true;
   };
 
+  const goToStep = (next: 1 | 2 | 3) => {
+    if (next === step) return;
+    if (next > step) {
+      if (next >= 2 && !validateStep(2)) return;
+      if (next >= 3 && !validateStep(3)) return;
+    }
+    setStep(next);
+    if (next === 3) {
+      setSaveArmed(false);
+      window.setTimeout(() => setSaveArmed(true), 350);
+    } else {
+      setSaveArmed(false);
+    }
+  };
+
   const onNext = () => {
-    if (step === 1 && validateStep(2)) setStep(2);
-    else if (step === 2 && validateStep(3)) setStep(3);
+    if (step === 1 && validateStep(2)) {
+      setStep(2);
+      setSaveArmed(false);
+    } else if (step === 2 && validateStep(3)) {
+      setStep(3);
+      setSaveArmed(false);
+      window.setTimeout(() => setSaveArmed(true), 350);
+    }
   };
 
   const onBack = () => {
-    if (step === 3) setStep(2);
-    else if (step === 2) setStep(1);
+    if (step === 3) {
+      setStep(2);
+      setSaveArmed(false);
+    } else if (step === 2) {
+      setStep(1);
+      setSaveArmed(false);
+    }
   };
 
-  const onSubmit = async (e: FormEvent) => {
+  // Form submit must never save: "Next Step" and "Save" share the same
+  // bottom-right slot, so a single click can mouseup on the new submit button.
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (step < 3) onNext();
+  };
+
+  const saveProduct = async () => {
+    if (step !== 3 || !saveArmed) return;
     if (!validateStep(2) || !validateStep(3)) return;
 
-    const featureHighlights: FeatureHighlight[] = [
-      { title: form.feature1Title.trim(), description: form.feature1Description.trim() },
-      { title: form.feature2Title.trim(), description: form.feature2Description.trim() },
-      { title: form.feature3Title.trim(), description: form.feature3Description.trim() },
-    ].filter((f) => f.title || f.description);
+    const featureHighlights: FeatureHighlight[] = form.featureHighlights
+      .map((f) => ({
+        title: f.title.trim(),
+        description: f.description.trim(),
+      }))
+      .filter((f) => f.title || f.description);
 
     const payload = {
       title: form.title,
@@ -161,7 +233,7 @@ export default function AdminProductsPage() {
       description: form.description,
       image: form.image,
       icon: form.icon,
-      gallery: [form.gallery1, form.gallery2].map((s) => s.trim()).filter(Boolean),
+      gallery: form.gallery.map((s) => s.trim()).filter(Boolean),
       pdfUrl: form.pdfUrl,
       featureHighlights,
       category: form.category,
@@ -346,16 +418,18 @@ export default function AdminProductsPage() {
                 const active = step === n;
                 const done = step > n;
                 return (
-                  <div
+                  <button
                     key={title}
-                    className={`rounded-lg border px-3 py-2 ${active ? "border-[#1A2332] bg-[#F8FAFC]" : done ? "border-emerald-200 bg-emerald-50" : "border-[#E2E5EA]"}`}
+                    type="button"
+                    onClick={() => goToStep(n)}
+                    className={`rounded-lg border px-3 py-2 text-left transition-colors ${active ? "border-[#1A2332] bg-[#F8FAFC]" : done ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-100" : "border-[#E2E5EA] hover:border-[#CBD5E1]"}`}
                   >
                     <p className={`font-semibold ${active ? "text-[#1A2332]" : done ? "text-emerald-700" : "text-[#6B7280]"}`}>
                       {title}
                     </p>
                     <p className="text-[11px] text-[#9CA3AF]">{sub}</p>
                     {done ? <CheckCircle2 className="mt-1 h-3.5 w-3.5 text-emerald-600" /> : null}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -430,12 +504,16 @@ export default function AdminProductsPage() {
                   kind="image"
                   value={form.image}
                   onChange={(v) => setForm({ ...form, image: v })}
+                  previewSize="lg"
+                  clearable
                 />
                 <MediaUpload
                   label="Icon (optional)"
                   kind="icon"
                   value={form.icon}
                   onChange={(v) => setForm({ ...form, icon: v })}
+                  previewSize="sm"
+                  clearable
                 />
               </div>
             ) : null}
@@ -445,7 +523,6 @@ export default function AdminProductsPage() {
                 <label className="block text-xs font-semibold text-[#5C6370]">
                   Section Subhead / Series Tag *
                   <input
-                    required
                     value={form.sectionTag}
                     onChange={(e) => setForm({ ...form, sectionTag: e.target.value })}
                     className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
@@ -454,7 +531,6 @@ export default function AdminProductsPage() {
                 <label className="block text-xs font-semibold text-[#5C6370]">
                   Detailed Description *
                   <textarea
-                    required
                     rows={5}
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -474,35 +550,94 @@ export default function AdminProductsPage() {
 
             {step === 3 ? (
               <div className="space-y-4">
-                {[1, 2, 3].map((n) => (
-                  <div key={n} className="rounded-xl border border-[#E8EAED] p-3">
-                    <p className="text-xs font-semibold text-[#1A2332] mb-2">Feature Highlight 0{n}</p>
-                    <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#334155]">
+                      Feature Highlights
+                    </p>
+                    <p className="text-[11px] text-[#94A3B8]">
+                      Titles and descriptions shown beside the feature images on the product page
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS.map((h) => ({ ...h })),
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E5EA] px-3 py-2 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC]"
+                    >
+                      Load defaults
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          featureHighlights: [
+                            ...form.featureHighlights,
+                            { title: "", description: "" },
+                          ],
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#CBD5E1] px-3 py-2 text-xs font-semibold text-[#1A2332] hover:bg-[#F8FAFC]"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add highlight
+                    </button>
+                  </div>
+                </div>
+
+                {form.featureHighlights.map((feature, index) => (
+                  <div key={index} className="rounded-xl border border-[#E8EAED] p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-[#1A2332]">
+                        Feature Highlight {String(index + 1).padStart(2, "0")}
+                      </p>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-red-600"
+                        onClick={() => {
+                          const next = form.featureHighlights.filter((_, i) => i !== index);
+                          setForm({
+                            ...form,
+                            featureHighlights: next.length
+                              ? next
+                              : [{ title: "", description: "" }],
+                          });
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <label className="block text-xs font-semibold text-[#5C6370]">
-                        Title *
+                        Title
                         <input
-                          required
-                          value={form[`feature${n}Title` as keyof typeof form] as string}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              [`feature${n}Title`]: e.target.value,
-                            } as typeof form)
-                          }
+                          value={feature.title}
+                          onChange={(e) => {
+                            const next = [...form.featureHighlights];
+                            next[index] = { ...feature, title: e.target.value };
+                            setForm({ ...form, featureHighlights: next });
+                          }}
+                          placeholder="e.g. Matte Obsidian Finish"
                           className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                         />
                       </label>
                       <label className="block text-xs font-semibold text-[#5C6370]">
-                        Description *
-                        <input
-                          required
-                          value={form[`feature${n}Description` as keyof typeof form] as string}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              [`feature${n}Description`]: e.target.value,
-                            } as typeof form)
-                          }
+                        Description
+                        <textarea
+                          rows={3}
+                          value={feature.description}
+                          onChange={(e) => {
+                            const next = [...form.featureHighlights];
+                            next[index] = { ...feature, description: e.target.value };
+                            setForm({ ...form, featureHighlights: next });
+                          }}
+                          placeholder="Short description shown under the title"
                           className="mt-1.5 w-full rounded-lg border border-[#E2E5EA] px-3 py-2.5 text-sm font-normal"
                         />
                       </label>
@@ -510,19 +645,66 @@ export default function AdminProductsPage() {
                   </div>
                 ))}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <MediaUpload
-                    label="Feature Gallery Image 01"
-                    kind="image"
-                    value={form.gallery1}
-                    onChange={(v) => setForm({ ...form, gallery1: v })}
-                  />
-                  <MediaUpload
-                    label="Feature Gallery Image 02"
-                    kind="image"
-                    value={form.gallery2}
-                    onChange={(v) => setForm({ ...form, gallery2: v })}
-                  />
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#334155]">
+                      Feature Images
+                    </p>
+                    <p className="text-[11px] text-[#94A3B8]">
+                      Add or remove images shown beside the highlights and in the product image slider
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm({ ...form, gallery: [...form.gallery, ""] })
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#CBD5E1] px-3 py-2 text-xs font-semibold text-[#1A2332] hover:bg-[#F8FAFC]"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add image
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {form.gallery.map((url, index) => (
+                    <div
+                      key={`gallery-${index}`}
+                      className="rounded-xl border border-[#E8EAED] p-3 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-[#1A2332]">
+                          Image {String(index + 1).padStart(2, "0")}
+                        </p>
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-red-600 disabled:opacity-40"
+                          disabled={form.gallery.length <= 1}
+                          onClick={() => {
+                            const next = form.gallery.filter((_, i) => i !== index);
+                            setForm({
+                              ...form,
+                              gallery: next.length ? next : [""],
+                            });
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <MediaUpload
+                        label="Image"
+                        kind="image"
+                        value={url}
+                        onChange={(v) => {
+                          const next = [...form.gallery];
+                          next[index] = v;
+                          setForm({ ...form, gallery: next });
+                        }}
+                        previewSize="lg"
+                        clearable
+                      />
+                    </div>
+                  ))}
                 </div>
 
                 <MediaUpload
@@ -530,6 +712,7 @@ export default function AdminProductsPage() {
                   kind="pdf"
                   value={form.pdfUrl}
                   onChange={(v) => setForm({ ...form, pdfUrl: v })}
+                  clearable
                 />
               </div>
             ) : null}
@@ -565,8 +748,10 @@ export default function AdminProductsPage() {
                 </button>
               ) : (
                 <button
-                  type="submit"
-                  className="rounded-lg bg-[#1A2332] text-white px-4 py-2 text-sm font-semibold"
+                  type="button"
+                  onClick={saveProduct}
+                  disabled={!saveArmed}
+                  className="rounded-lg bg-[#1A2332] text-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
                 >
                   {modal === "create" ? "Create Product" : "Edit Product"}
                 </button>

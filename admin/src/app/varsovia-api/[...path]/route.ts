@@ -110,10 +110,13 @@ async function proxy(
       },
     });
   } catch {
+    const target = apiBase();
+    const isLocal = /localhost|127\.0\.0\.1/i.test(target);
     return Response.json(
       {
-        message:
-          "Cannot reach Varsovia API. The Render instance may still be waking up — try again.",
+        message: isLocal
+          ? `Cannot reach Varsovia API at ${target}. Start the Varsovia backend (port 5001) and try again.`
+          : "Cannot reach Varsovia API. The Render instance may still be waking up — try again.",
       },
       { status: 502 }
     );

@@ -68,7 +68,7 @@ const SECTION_META = [
   {
     key: "catalogue",
     title: "Free Catalogue",
-    desc: "3 downloadable PDF catalogs",
+    desc: "Downloadable PDF catalogs",
     icon: FileDown,
   },
   {

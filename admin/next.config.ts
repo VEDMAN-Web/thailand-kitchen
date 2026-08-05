@@ -17,10 +17,19 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: rootDir,
   },
+  // Large CMS media uploads are proxied via /api → Express. Next defaults to 10MB
+  // and truncates the body (causing multer "socket hang up" / aborted uploads).
+  experimental: {
+    proxyClientMaxBodySize: "50mb",
+  },
   // Allow LAN + tunnel access to Next.js HMR /dev resources in development
   allowedDevOrigins: [
     "192.168.1.18",
     "192.168.1.26",
+    "192.168.1.*",
+    "10.100.193.207",
+    "10.100.*.*",
+    "10.*.*.*",
     "localhost",
     "127.0.0.1",
     "*.ngrok-free.dev",

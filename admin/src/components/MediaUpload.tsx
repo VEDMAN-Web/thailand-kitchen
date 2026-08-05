@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { uploadMedia } from "@/services/adminAPI";
+import { clsx } from "clsx";
 
 type Kind = "image" | "icon" | "pdf" | "any";
 
@@ -20,6 +21,8 @@ export default function MediaUpload({
   accept,
   hint,
   uploadFile,
+  previewSize = "md",
+  clearable = false,
 }: {
   label: string;
   value: string;
@@ -29,8 +32,13 @@ export default function MediaUpload({
   hint?: string;
   /** Override default Thailand /upload (e.g. Varsovia public media). */
   uploadFile?: (file: File, kind: Kind) => Promise<UploadResult>;
+  /** Image preview size in the admin form. */
+  previewSize?: "sm" | "md" | "lg";
+  /** Show a clear/remove control when a value is set. */
+  clearable?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadingRef = useRef(false);
   const [uploading, setUploading] = useState(false);
 
   const defaultAccept =
@@ -41,7 +49,12 @@ export default function MediaUpload({
         : "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
 
   const onFile = async (file?: File | null) => {
-    if (!file) return;
+    if (!file || uploadingRef.current) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("File must be 50MB or smaller");
+      return;
+    }
+    uploadingRef.current = true;
     setUploading(true);
     try {
       const res = uploadFile
@@ -53,10 +66,18 @@ export default function MediaUpload({
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
+      uploadingRef.current = false;
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
+
+  const previewClass =
+    previewSize === "lg"
+      ? "mt-2 w-full max-h-72 rounded-xl border border-[#E8EAED] object-contain bg-[#F8FAFC]"
+      : previewSize === "md"
+        ? "mt-2 h-40 w-full max-w-md rounded-lg border border-[#E8EAED] object-contain bg-[#F8FAFC]"
+        : "mt-2 h-16 w-auto max-w-full rounded-md border border-[#E8EAED] object-contain bg-white";
 
   return (
     <div>
@@ -82,8 +103,19 @@ export default function MediaUpload({
           ) : (
             <Upload className="w-3.5 h-3.5" />
           )}
-          Upload
+          {uploading ? "Uploading…" : "Upload"}
         </button>
+        {clearable && value ? (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="inline-flex items-center gap-1 rounded-lg border border-[#FECACA] bg-white px-3 py-2 text-xs font-semibold text-[#B91C1C] hover:bg-red-50"
+            aria-label="Remove"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Remove
+          </button>
+        ) : null}
         <input
           ref={inputRef}
           type="file"
@@ -98,8 +130,11 @@ export default function MediaUpload({
         <img
           src={value}
           alt=""
-          className="mt-2 h-16 w-auto max-w-full rounded-md border border-[#E8EAED] object-contain bg-white"
+          className={clsx(previewClass)}
         />
+      ) : null}
+      {value && kind === "pdf" ? (
+        <p className="mt-2 truncate text-xs text-[#64748B]">{value}</p>
       ) : null}
     </div>
   );

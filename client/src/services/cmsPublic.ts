@@ -63,6 +63,7 @@ type CmsProduct = {
   pdfUrl?: string;
   category: string;
   featured: boolean;
+  featureHighlights?: { title?: string; description?: string }[];
 };
 
 type CmsBlogTranslation = {
@@ -127,10 +128,16 @@ function mapCmsProduct(p: CmsProduct, index: number): ProductItem {
     galleryImages[1] || galleryImages[0] || image,
     galleryImages[2] || galleryImages[1] || galleryImages[0] || image,
   ];
-  const detailImages: [string, string] = [
-    galleryImages[0] || image,
-    galleryImages[1] || galleryImages[0] || image,
-  ];
+  const detailImages: string[] = galleryImages.length
+    ? galleryImages
+    : [image, image];
+  const features =
+    p.featureHighlights
+      ?.map((f) => ({
+        title: String(f.title || "").trim(),
+        description: String(f.description || "").trim(),
+      }))
+      .filter((f) => f.title || f.description) || [];
 
   return {
     ...template,
@@ -146,6 +153,7 @@ function mapCmsProduct(p: CmsProduct, index: number): ProductItem {
     headline: p.title,
     description: p.description || template.description,
     gallery: galleryImages.map((img) => ({ image: img, caption: p.title })),
+    features: features.length ? features : template.features,
     detailImages,
     contactImage: image,
   };
@@ -309,7 +317,20 @@ export type CmsCatalogue = {
 export async function fetchMergedCatalogues(): Promise<CmsCatalogue[]> {
   const { products } = await import("../component/catlog/catlogData");
   const home = await fetchHomeSections();
-  const homeItems = (home?.catalogue?.items || []) as any[];
+
+  // Prefer Home Management → Free Catalogue (admin source of truth),
+  // including an empty list after all items are removed.
+  if (home && Array.isArray(home.catalogue?.items)) {
+    return (home.catalogue.items as any[]).map((c, index) => ({
+      id: 31000 + index,
+      category: c.category || "Catalogue",
+      title: c.title || "Catalogue",
+      image: c.image || "/catlog/catlog.png",
+      pdf: c.fileName || "",
+      pdfUrl: c.pdfUrl || "",
+      downloadName: c.downloadName || c.fileName || "catalogue.pdf",
+    }));
+  }
 
   const dedicated = (await cmsFetch(`/cms/${SITE_ID}/catalogues`)) as
     | { items?: any[] }
@@ -325,18 +346,8 @@ export async function fetchMergedCatalogues(): Promise<CmsCatalogue[]> {
     downloadName: c.downloadName || c.fileName || "catalogue.pdf",
   }));
 
-  const fromHome = homeItems.map((c, index) => ({
-    id: 31000 + index,
-    category: c.category || "Catalogue",
-    title: c.title || "Catalogue",
-    image: c.image || "/catlog/catlog.png",
-    pdf: c.fileName || "",
-    pdfUrl: c.pdfUrl || "",
-    downloadName: c.downloadName || c.fileName || "catalogue.pdf",
-  }));
-
   if (fromDedicated.length) return fromDedicated;
-  if (fromHome.length) return fromHome;
+
   return products.map((p) => ({
     ...p,
     pdfUrl: "",

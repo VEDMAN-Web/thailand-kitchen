@@ -161,6 +161,25 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Default Features & Details copy shown on the product page */
+const DEFAULT_FEATURE_HIGHLIGHTS = [
+  {
+    title: "Matte Obsidian Finish",
+    description:
+      "A deep, light-absorbing lacquer that keeps surfaces calm and fingerprints discreet in daily living.",
+  },
+  {
+    title: "Artisanal Gold Hardware",
+    description:
+      "Hand-finished pulls and hinges that catch soft light and complete the dark timber silhouette.",
+  },
+  {
+    title: "Imperial Marble Worktops",
+    description:
+      "Thick stone slabs with natural veining, sealed for lasting kitchen use and a quiet luxury feel.",
+  },
+];
+
 /** Website catalogue seed — keeps admin + public site in sync */
 const DEFAULT_PRODUCTS = [
   {
@@ -175,23 +194,7 @@ const DEFAULT_PRODUCTS = [
     gallery: ["/product/product.png", "/products/Kitchen1.png", "/products/Kitchen2.png"],
     category: "Islands",
     featured: true,
-    featureHighlights: [
-      {
-        title: "Matte Obsidian Finish",
-        description:
-          "A deep, light-absorbing lacquer that keeps surfaces calm and fingerprints discreet in daily living.",
-      },
-      {
-        title: "Artisanal Gold Hardware",
-        description:
-          "Hand-finished pulls and hinges that catch soft light and complete the dark timber silhouette.",
-      },
-      {
-        title: "Imperial Marble Worktops",
-        description:
-          "Thick stone slabs with natural veining, sealed for lasting kitchen use and a quiet luxury feel.",
-      },
-    ],
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Pearl Harbor",
@@ -205,6 +208,7 @@ const DEFAULT_PRODUCTS = [
     gallery: ["/products/Kitchen2.png", "/products/Kitchen3.png", "/products/Kitchen4.png"],
     category: "Straight",
     featured: true,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Teak Atelier",
@@ -218,6 +222,7 @@ const DEFAULT_PRODUCTS = [
     gallery: ["/products/Kitchen3.png", "/products/Kitchen1.png", "/products/Kitchen6.png"],
     category: "L Shape",
     featured: true,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Midnight Gallery",
@@ -231,6 +236,7 @@ const DEFAULT_PRODUCTS = [
     gallery: ["/products/Kitchen4.png", "/products/Kitchen5.png", "/products/Kitchen2.png"],
     category: "U Shape",
     featured: false,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Soft Horizon",
@@ -244,6 +250,7 @@ const DEFAULT_PRODUCTS = [
     gallery: ["/products/Kitchen5.png", "/products/Kitchen6.png", "/products/Kitchen1.png"],
     category: "Modern",
     featured: true,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Coastal Line",
@@ -257,6 +264,7 @@ const DEFAULT_PRODUCTS = [
     gallery: ["/products/Kitchen6.png", "/products/Kitchen2.png", "/products/Kitchen3.png"],
     category: "T Shape",
     featured: false,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Amber Court",
@@ -267,9 +275,10 @@ const DEFAULT_PRODUCTS = [
     description:
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen1.png",
-    gallery: ["/products/Kitchen1.png", "/products/Kitchen2.png"],
+    gallery: ["/products/Kitchen1.png", "/products/Kitchen2.png", "/products/Kitchen3.png"],
     category: "Islands",
     featured: false,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Nova Kitchen",
@@ -280,9 +289,10 @@ const DEFAULT_PRODUCTS = [
     description:
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen2.png",
-    gallery: ["/products/Kitchen2.png", "/products/Kitchen3.png"],
+    gallery: ["/products/Kitchen2.png", "/products/Kitchen3.png", "/products/Kitchen4.png"],
     category: "Modern",
     featured: true,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Heritage Wing",
@@ -293,9 +303,10 @@ const DEFAULT_PRODUCTS = [
     description:
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen3.png",
-    gallery: ["/products/Kitchen3.png", "/products/Kitchen4.png"],
+    gallery: ["/products/Kitchen3.png", "/products/Kitchen4.png", "/products/Kitchen5.png"],
     category: "U Shape",
     featured: false,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Calm Studio",
@@ -306,9 +317,10 @@ const DEFAULT_PRODUCTS = [
     description:
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen4.png",
-    gallery: ["/products/Kitchen4.png", "/products/Kitchen5.png"],
+    gallery: ["/products/Kitchen4.png", "/products/Kitchen5.png", "/products/Kitchen6.png"],
     category: "L Shape",
     featured: false,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Shadow Ridge",
@@ -319,9 +331,10 @@ const DEFAULT_PRODUCTS = [
     description:
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen5.png",
-    gallery: ["/products/Kitchen5.png", "/products/Kitchen6.png"],
+    gallery: ["/products/Kitchen5.png", "/products/Kitchen6.png", "/products/Kitchen1.png"],
     category: "Islands",
     featured: true,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
   {
     title: "Linen Bay",
@@ -332,14 +345,15 @@ const DEFAULT_PRODUCTS = [
     description:
       "Teak brings warmth, strength, and quiet richness to every surface — a material that ages with character and elevates the kitchen into a lasting heirloom.",
     image: "/products/Kitchen6.png",
-    gallery: ["/products/Kitchen6.png", "/products/Kitchen1.png"],
+    gallery: ["/products/Kitchen6.png", "/products/Kitchen1.png", "/products/Kitchen2.png"],
     category: "Straight",
     featured: false,
+    featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS,
   },
 ];
 
 async function ensureDefaultProducts(siteId) {
-  const existing = await Product.find({ siteId }).select("slug").lean();
+  const existing = await Product.find({ siteId }).select("slug image featureHighlights gallery").lean();
   const existingSlugs = new Set(
     existing.map((p) => String(p.slug || "").trim().toLowerCase())
   );
@@ -347,26 +361,51 @@ async function ensureDefaultProducts(siteId) {
   const missing = DEFAULT_PRODUCTS.filter(
     (p) => !existingSlugs.has(String(p.slug).toLowerCase())
   );
-  if (!missing.length) return;
+  if (missing.length) {
+    await Product.insertMany(
+      missing.map((p) => ({
+        siteId,
+        title: p.title,
+        slug: p.slug,
+        subtitle: p.subtitle || "",
+        productType: p.productType || "",
+        sectionTag: p.sectionTag || "",
+        description: p.description || "",
+        image: p.image || "",
+        icon: "",
+        gallery: p.gallery || [],
+        pdfUrl: "",
+        featureHighlights: p.featureHighlights || DEFAULT_FEATURE_HIGHLIGHTS,
+        category: p.category || "",
+        featured: Boolean(p.featured),
+      }))
+    );
+  }
 
-  await Product.insertMany(
-    missing.map((p) => ({
-      siteId,
-      title: p.title,
-      slug: p.slug,
-      subtitle: p.subtitle || "",
-      productType: p.productType || "",
-      sectionTag: p.sectionTag || "",
-      description: p.description || "",
-      image: p.image || "",
-      icon: "",
-      gallery: p.gallery || [],
-      pdfUrl: "",
-      featureHighlights: p.featureHighlights || [],
-      category: p.category || "",
-      featured: Boolean(p.featured),
-    }))
-  );
+  // Backfill empty Features & Details for products created before highlights existed
+  const needsHighlights = existing.filter((p) => {
+    const highlights = Array.isArray(p.featureHighlights) ? p.featureHighlights : [];
+    return !highlights.some((h) => String(h?.title || "").trim() || String(h?.description || "").trim());
+  });
+  if (needsHighlights.length) {
+    await Product.updateMany(
+      { _id: { $in: needsHighlights.map((p) => p._id) } },
+      { $set: { featureHighlights: DEFAULT_FEATURE_HIGHLIGHTS } }
+    );
+  }
+
+  // Ensure each product has at least two gallery images for the Features side panel
+  const needsGallery = existing.filter((p) => !Array.isArray(p.gallery) || p.gallery.length < 2);
+  for (const product of needsGallery) {
+    const seed = DEFAULT_PRODUCTS.find(
+      (p) => String(p.slug).toLowerCase() === String(product.slug || "").toLowerCase()
+    );
+    const gallery =
+      seed?.gallery?.length >= 2
+        ? seed.gallery
+        : [product.image || "/products/Kitchen1.png", "/products/Kitchen2.png"].filter(Boolean);
+    await Product.updateOne({ _id: product._id }, { $set: { gallery } });
+  }
 }
 
 /** Website gallery seed — keeps admin + public gallery in sync */

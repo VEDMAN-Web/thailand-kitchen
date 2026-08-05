@@ -65,9 +65,9 @@ function validateGateForm(
 export default function CatlogSection() {
   const { t } = useTranslation();
   const [catalogItems, setCatalogItems] = useState<CmsCatalogue[]>(
-    products.slice(0, 3).map((p) => ({ ...p, pdfUrl: "" }))
+    products.map((p) => ({ ...p, pdfUrl: "" }))
   );
-  const items = catalogItems.slice(0, 3);
+  const items = catalogItems;
   const [active, setActive] = useState<number | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const [showFormPopup, setShowFormPopup] = useState(false);
@@ -285,6 +285,11 @@ export default function CatlogSection() {
             className="flex flex-col sm:flex-row gap-3 sm:gap-4 h-auto sm:h-[520px] lg:h-[600px]"
             onMouseLeave={() => setActive(null)}
           >
+            {items.length === 0 ? (
+              <p className="text-sm text-[#6B6B6B]">
+                No catalogues available yet.
+              </p>
+            ) : null}
             {items.map((item, index) => {
               const isActive = active === index;
               const isIdle = active === null;
